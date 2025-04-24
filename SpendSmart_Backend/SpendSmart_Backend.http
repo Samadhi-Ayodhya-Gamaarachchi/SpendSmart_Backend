@@ -1,0 +1,6 @@
+@SpendSmart_Backend_HostAddress = http://localhost:5234
+
+GET {{SpendSmart_Backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
