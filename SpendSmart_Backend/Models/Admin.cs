@@ -3,13 +3,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpendSmart_Backend.Models
 {
-    public class Category
+    public class Admin
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
         public string Name { get; set; }
-        public ICollection<Transaction> Transactions { get; set; }
-        public ICollection<Budget> Budgets { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+
+        public ICollection<UserAdmin> userAdmins { get; set; }
     }
 }
