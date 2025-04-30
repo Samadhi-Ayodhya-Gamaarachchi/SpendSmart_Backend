@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35828.75 d17.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpendSmart_Backend", "SpendSmart_Backend\SpendSmart_Backend.csproj", "{2328A592-9E9A-49F9-81BC-7BA5B0D5F94E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpendSmart_Backend", "SpendSmart_Backend\SpendSmart_Backend.csproj", "{BC3DF869-34C2-4FAE-82EB-8F2F6D6FC614}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2328A592-9E9A-49F9-81BC-7BA5B0D5F94E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2328A592-9E9A-49F9-81BC-7BA5B0D5F94E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2328A592-9E9A-49F9-81BC-7BA5B0D5F94E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2328A592-9E9A-49F9-81BC-7BA5B0D5F94E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC3DF869-34C2-4FAE-82EB-8F2F6D6FC614}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC3DF869-34C2-4FAE-82EB-8F2F6D6FC614}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC3DF869-34C2-4FAE-82EB-8F2F6D6FC614}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC3DF869-34C2-4FAE-82EB-8F2F6D6FC614}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {0463156A-9896-4DFF-B0D7-38319739C13C}
+		SolutionGuid = {098955A0-D283-4E24-9AF1-CFD0C133EE64}
 	EndGlobalSection
 EndGlobal
