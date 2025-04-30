@@ -12,6 +12,6 @@ namespace SpendSmart_Backend.Models
         public string Email { get; set; }
         public string Password { get; set; }
 
-        public ICollection<UserAdmin> userAdmins { get; set; }
+        public ICollection<UserAdmin> UserAdmins { get; set; }
     }
 }
