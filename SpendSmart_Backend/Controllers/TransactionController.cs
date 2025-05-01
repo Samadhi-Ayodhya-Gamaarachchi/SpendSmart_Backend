@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.DTOs;
 using SpendSmart_Backend.Models;
@@ -35,6 +36,26 @@ namespace SpendSmart_Backend.Controllers
             _context.Transactions.Add(transaction);
             await _context.SaveChangesAsync();
             return Ok(transaction);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTransactions()
+        {
+            var transactions = await _context.Transactions
+                .Include(t => t.Category)
+                .OrderByDescending(t => t.Date)
+                .Select(t => new TransactionViewDto
+                {
+                    Id = t.Id,
+                    Type = t.Type,
+                    Category = t.Category.Name,
+                    Amount = t.Amount,
+                    Date = t.Date.ToString("yyyy-MM-dd"),
+                    Description = t.Description,
+                })
+                .ToListAsync();
+
+            return Ok(transactions);
         }
     }
 }
