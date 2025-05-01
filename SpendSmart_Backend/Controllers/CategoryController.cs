@@ -16,7 +16,7 @@ namespace SpendSmart_Backend.Controllers
             _context = context;
         }
 
-        [HttpGet]
+        [HttpGet("GetCategories")]
         public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
         {
             var categories = await _context.Categories

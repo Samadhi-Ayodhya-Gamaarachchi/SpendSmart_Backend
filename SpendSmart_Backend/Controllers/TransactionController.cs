@@ -17,7 +17,7 @@ namespace SpendSmart_Backend.Controllers
             _context = context;
         }
 
-        [HttpPost]
+        [HttpPost("CreateTransaction")]
         public async Task<IActionResult> CreateTransaction([FromBody] TransactionDto transactionDto)
         {
             if (transactionDto == null)
@@ -38,7 +38,7 @@ namespace SpendSmart_Backend.Controllers
             return Ok(transaction);
         }
 
-        [HttpGet]
+        [HttpGet("GetTransaction")]
         public async Task<IActionResult> GetTransactions()
         {
             var transactions = await _context.Transactions
@@ -56,6 +56,19 @@ namespace SpendSmart_Backend.Controllers
                 .ToListAsync();
 
             return Ok(transactions);
+        }
+
+        [HttpDelete("DeleteTransaction/{id}")]
+        public async Task<IActionResult> DeleteTransaction(int id)
+        {
+            var transaction = await _context.Transactions.FindAsync(id);
+            if (transaction == null)
+            {
+                return NotFound("Transaction not found.");
+            }
+            _context.Transactions.Remove(transaction);
+            await _context.SaveChangesAsync();
+            return Ok("Transaction deleted successfully.");
         }
     }
 }
