@@ -25,15 +25,21 @@ namespace SpendSmart_Backend.Controllers
             return Ok("User registered successfully");
         }
 
+        // Controllers/UserAuthController.cs
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDto dto)
+        public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var valid = await _authService.ValidateUser(dto);
-            if (!valid) return Unauthorized("Invalid credentials");
-
-            var token = _authService.GenerateJwtToken(dto.Email, "User");
-            return Ok(new { token });
+            try
+            {
+                var token = await _authService.LoginUser(dto);
+                return Ok(new { token });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
+
 
 
 

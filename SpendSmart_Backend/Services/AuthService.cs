@@ -29,9 +29,10 @@ namespace SpendSmart_Backend.Services
 
             var user = new User
             {
-                Name = dto.Name,
+                UserName = dto.UserName,
                 Email = dto.Email,
-                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Currency=dto.Currency
             };
 
             _context.Users.Add(user);
@@ -49,7 +50,7 @@ namespace SpendSmart_Backend.Services
 
             var admin = new Admin
             {
-                Name = dto.Name,
+                UserName = dto.UserName,
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password)
             };
@@ -59,17 +60,40 @@ namespace SpendSmart_Backend.Services
             return true;
         }
 
-        public async Task<bool> ValidateUser(LoginDto dto)
+        public async Task<string> LoginUser(LoginDto dto)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-            return user != null && BCrypt.Net.BCrypt.Verify(dto.Password, user.Password);
+            if (user == null)
+                throw new Exception("User not found");
+
+            // Fix: Use 'Password' property instead of 'PasswordHash'
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.Password);
+
+            if (!isPasswordValid)
+                throw new Exception("Incorrect password");
+
+            // Generate JWT token (simple version)
+            var token = $"fake-jwt-token-for-{user.UserName}";
+            return token;
         }
 
-        public async Task<bool> ValidateAdmin(LoginDto dto)
+
+        public async Task<string> LoginAdmin(LoginDto dto)
         {
-            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == dto.Email);
-            return admin != null && BCrypt.Net.BCrypt.Verify(dto.Password, admin.Password);
+            var admin = await _context.Admins.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            if (admin == null)
+                throw new Exception("User not found");
+
+            // Fix: Use 'Password' property instead of 'PasswordHash'
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, admin.Password);
+
+            if (!isPasswordValid)
+                throw new Exception("Incorrect password");
+            // Generate JWT token (simple version)
+            var token = $"fake-jwt-token-for-{admin.UserName}";
+            return token;
         }
+
 
 
         public string GenerateJwtToken(string username, string role)

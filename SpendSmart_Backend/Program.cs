@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Services;
 using System.Text;
+using BCrypt.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,3 +65,9 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+
+
+
+
