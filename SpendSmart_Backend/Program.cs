@@ -45,10 +45,27 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173") // React dev server
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
+
+// Build the app before using it
+var app = builder.Build();
+
+app.UseCors(MyAllowSpecificOrigins);
+
 // Authorization
 builder.Services.AddAuthorization();
-
-var app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -65,9 +82,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
-
-
-
-
-
