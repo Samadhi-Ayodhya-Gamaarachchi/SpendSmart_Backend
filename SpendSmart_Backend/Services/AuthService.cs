@@ -6,7 +6,7 @@ using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.DTOs;
-using BCrypt.Net;
+
 
 namespace SpendSmart_Backend.Services
 {
@@ -32,7 +32,7 @@ namespace SpendSmart_Backend.Services
                 UserName = dto.UserName,
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Currency=dto.Currency
+                Currency = dto.Currency
             };
 
             _context.Users.Add(user);
