@@ -5,11 +5,16 @@ using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Services;
 using System.Text;
 using BCrypt.Net;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+});
+
 
 // Configure Swagger
 builder.Services.AddEndpointsApiExplorer();
