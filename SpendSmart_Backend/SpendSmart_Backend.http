@@ -1,6 +1,10 @@
-@SpendSmart_Backend_HostAddress = http://localhost:5110
+@SpendSmart_Backend_HostAddress = https://localhost:7211
 
 GET {{SpendSmart_Backend_HostAddress}}/weatherforecast/
 Accept: application/json
+
+###
+
+GET {{SpendSmart_Backend_HostAddress}}/api/account
 
 ###
