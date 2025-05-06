@@ -21,7 +21,8 @@ namespace SpendSmart_Backend.Controllers
         public async Task<IActionResult> Register(RegisterDto dto)
         {
             var success = await _authService.RegisterAdmin(dto);
-            if (!success) return BadRequest("Registration failed");
+            if (!success)
+                return BadRequest(new { message = "Registration failed" });
             return Ok("Admin registered successfully");
         }
 
