@@ -26,6 +26,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Register custom services
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<EmailService>();
+
 
 // JWT Configuration
 var jwtSettings = builder.Configuration.GetSection("Jwt");

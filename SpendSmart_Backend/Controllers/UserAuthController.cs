@@ -41,6 +41,34 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            var result = await _authService.GenerateResetTokenAsync(dto.Email);
+            if (!result)
+                return BadRequest(new { message = "Email not found" });
+
+            return Ok(new { message = "Password reset link has been sent to your email." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            var result = await _authService.ResetPasswordAsync(dto.Token, dto.NewPassword);
+            if (!result)
+                return BadRequest(new { message = "Invalid or expired token" });
+
+            return Ok(new { message = "Password has been reset successfully." });
+        }
+
+        [HttpPost("validate-reset-token")]
+        public async Task<IActionResult> ValidateResetToken([FromBody] TokenDto dto)
+        {
+            var isValid = await _authService.ValidateResetTokenAsync(dto.Token);
+            return isValid ? Ok() : BadRequest(new { message = "Invalid or expired token" });
+        }
+
+
 
 
 

@@ -13,11 +13,14 @@ namespace SpendSmart_Backend.Services
     public class AuthService
     {
         private readonly ApplicationDbContext _context;
+        private readonly EmailService _emailService;
 
-        public AuthService(ApplicationDbContext context)
+        public AuthService(ApplicationDbContext context, EmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
+
 
         public async Task<bool> RegisterUser(RegisterDto dto)
         {
@@ -119,6 +122,46 @@ namespace SpendSmart_Backend.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+        public async Task<bool> GenerateResetTokenAsync(string email)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null) return false;
+
+            user.ResetToken = Guid.NewGuid().ToString();
+            user.ResetTokenExpiry = DateTime.UtcNow.AddHours(1);
+
+            await _context.SaveChangesAsync();
+
+            var resetLink = $"http://localhost:5173/resetpassword?token={user.ResetToken}";
+            var body = $"Click <a href='{resetLink}'>here</a> to reset your password. This link will expire in 1 hour.";
+
+            await _emailService.SendEmailAsync(user.Email, "Password Reset Request", body);
+
+            return true;
+        }
+
+
+        public async Task<bool> ResetPasswordAsync(string token, string newPassword)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.ResetToken == token && u.ResetTokenExpiry > DateTime.UtcNow);
+            if (user == null) return false;
+
+            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword); // or your own hashing method
+            user.ResetToken = null;
+            user.ResetTokenExpiry = null;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ValidateResetTokenAsync(string token)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.ResetToken == token && u.ResetTokenExpiry > DateTime.UtcNow);
+            return user != null;
+        }
+
+
 
     }
 
