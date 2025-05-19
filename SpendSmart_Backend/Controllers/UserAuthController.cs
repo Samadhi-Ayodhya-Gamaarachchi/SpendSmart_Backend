@@ -26,7 +26,7 @@ namespace SpendSmart_Backend.Controllers
 
         }
 
-        // Controllers/UserAuthController.cs
+        
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {

@@ -9,27 +9,23 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 });
 
 
-// Configure Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure EF Core with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
 
-// Register custom services
+
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailService>();
 
 
-// JWT Configuration
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
@@ -59,22 +55,21 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: MyAllowSpecificOrigins,
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173") // React dev server
-                  .AllowAnyHeader()
+            policy.WithOrigins("http://localhost:5173") 
                   .AllowAnyMethod();
         });
 });
 
 
-// Build the app before using it
+
 var app = builder.Build();
 
 app.UseCors(MyAllowSpecificOrigins);
 
-// Authorization
+
 builder.Services.AddAuthorization();
 
-// Configure the HTTP request pipeline
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

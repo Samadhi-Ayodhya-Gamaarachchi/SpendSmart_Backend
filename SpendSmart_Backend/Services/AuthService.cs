@@ -69,13 +69,12 @@ namespace SpendSmart_Backend.Services
             if (user == null)
                 throw new Exception("User not found");
 
-            // Fix: Use 'Password' property instead of 'PasswordHash'
+            
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.Password);
 
             if (!isPasswordValid)
                 throw new Exception("Incorrect password");
 
-            // Generate JWT token (simple version)
             var token = $"fake-jwt-token-for-{user.UserName}";
             return token;
         }
@@ -87,12 +86,12 @@ namespace SpendSmart_Backend.Services
             if (admin == null)
                 throw new Exception("User not found");
 
-            // Fix: Use 'Password' property instead of 'PasswordHash'
+            
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, admin.Password);
 
             if (!isPasswordValid)
                 throw new Exception("Incorrect password");
-            // Generate JWT token (simple version)
+            
             var token = $"fake-jwt-token-for-{admin.UserName}";
             return token;
         }
@@ -147,7 +146,7 @@ namespace SpendSmart_Backend.Services
             var user = await _context.Users.FirstOrDefaultAsync(u => u.ResetToken == token && u.ResetTokenExpiry > DateTime.UtcNow);
             if (user == null) return false;
 
-            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword); // or your own hashing method
+            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword); 
             user.ResetToken = null;
             user.ResetTokenExpiry = null;
 
