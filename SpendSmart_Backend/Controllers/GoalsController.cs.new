@@ -201,22 +201,45 @@ namespace SpendSmart_Backend.Controllers
 
         // DELETE: api/Goals/5
         [HttpDelete("{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteGoal(int id)
+        public async Task<ActionResult<GoalDto>> DeleteGoal(int id)
         {
+            _logger.LogInformation("Deleting goal with ID: {GoalId}", id);
+            
             var goal = await _context.Goals.FindAsync(id);
             if (goal == null)
             {
-                return NotFound();
+                _logger.LogWarning("Goal with ID {GoalId} not found for deletion", id);
+                return NotFound($"Goal with ID {id} not found");
             }
 
             try
             {
+                // Create DTO for response before removing
+                var goalDto = new GoalDto
+                {
+                    Id = goal.Id,
+                    Name = goal.Name,
+                    TargetAmount = goal.TargetAmount,
+                    CurrentAmount = goal.CurrentAmount,
+                    StartDate = goal.StartDate,
+                    EndDate = goal.EndDate,
+                    Description = goal.Description ?? "",
+                    UserId = goal.UserId,
+                    Progress = goal.TargetAmount > 0 ? Math.Round((goal.CurrentAmount / goal.TargetAmount) * 100, 2) : 0,
+                    RemainingDays = (int)(goal.EndDate - DateTime.Now).TotalDays
+                };
+
+                // Remove the goal
                 _context.Goals.Remove(goal);
                 await _context.SaveChangesAsync();
-                return NoContent();
+                
+                _logger.LogInformation("Goal with ID {GoalId} successfully deleted", id);
+                
+                // Return OK with the deleted goal data
+                return Ok(goalDto);
             }
             catch (Exception ex)
             {
