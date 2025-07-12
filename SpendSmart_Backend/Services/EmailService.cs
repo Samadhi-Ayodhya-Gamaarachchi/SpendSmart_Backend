@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using SpendSmart_Backend.Models;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
@@ -35,7 +36,30 @@ namespace SpendSmart_Backend.Services
             };
 
             mailMessage.To.Add(toEmail);
-            await smtpClient.SendMailAsync(mailMessage);
+            try
+            {
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Email sending failed: " + ex.Message);
+                throw; // rethrow or handle appropriately
+            }
+
+        }
+
+        public async Task SendVerificationEmailAsync(string toEmail, string token, string userName)
+        {
+            string verificationLink = $"http://localhost:5173/verify-email?email={WebUtility.UrlEncode(toEmail)}&token={token}";
+
+            string subject = "Verify your email address";
+            string body = $@"
+                    <p>Hello {userName},</p>
+                    <p>Thanks for registering at SpendSmart. Please verify your email address by clicking the link below:</p>
+                    <p><a href='{verificationLink}'>Verify Email</a></p>
+                    <p>If you didn’t register, please ignore this message.</p>";
+
+            await SendEmailAsync(toEmail, subject, body);
         }
     }
 }

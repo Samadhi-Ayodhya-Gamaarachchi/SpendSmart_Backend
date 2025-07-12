@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SpendSmart_Backend.Data;
 using SpendSmart_Backend.DTOs;
 using SpendSmart_Backend.Services;
 
@@ -11,10 +13,12 @@ namespace SpendSmart_Backend.Controllers
     public class UserAuthController : ControllerBase
     {
         private readonly AuthService _authService;
+        private readonly ApplicationDbContext _context; // ← Add this
 
-        public UserAuthController(AuthService authService)
+        public UserAuthController(AuthService authService, ApplicationDbContext context)
         {
             _authService = authService;
+            _context = context; // ← Assign here
         }
 
         [HttpPost("register")]
@@ -39,6 +43,7 @@ namespace SpendSmart_Backend.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+
         }
 
         [HttpPost("forgot-password")]
@@ -67,6 +72,24 @@ namespace SpendSmart_Backend.Controllers
             var isValid = await _authService.ValidateResetTokenAsync(dto.Token);
             return isValid ? Ok() : BadRequest(new { message = "Invalid or expired token" });
         }
+
+        
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmail(string email, string token)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null || user.EmailVerificationToken != token)
+                return BadRequest("Invalid verification link.");
+
+            user.IsEmailVerified = true;
+            user.EmailVerificationToken = null;
+            await _context.SaveChangesAsync();
+
+            return Ok("Email successfully verified!");
+        }
+
+
 
 
 

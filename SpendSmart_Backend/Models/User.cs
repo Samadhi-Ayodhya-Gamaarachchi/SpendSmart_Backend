@@ -22,5 +22,10 @@ namespace SpendSmart_Backend.Models
         // Add missing properties for ResetToken and ResetTokenExpiry
         public string? ResetToken { get; set; }
         public DateTime? ResetTokenExpiry { get; set; }
+
+        public bool IsEmailVerified { get; set; } = false;
+        public string? EmailVerificationToken { get; set; }
+
+
     }
 }

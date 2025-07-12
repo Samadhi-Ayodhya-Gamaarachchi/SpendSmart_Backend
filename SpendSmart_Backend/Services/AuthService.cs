@@ -30,18 +30,27 @@ namespace SpendSmart_Backend.Services
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 return false;
 
+            var token = Guid.NewGuid().ToString();
+
             var user = new User
             {
                 UserName = dto.UserName,
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Currency = dto.Currency
+                Currency = dto.Currency,
+                IsEmailVerified = false,
+                EmailVerificationToken = token
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+
+            await _emailService.SendVerificationEmailAsync(user.Email, token, user.UserName);
+
             return true;
         }
+
+
 
         public async Task<bool> RegisterAdmin(RegisterDto dto)
         {
@@ -69,11 +78,13 @@ namespace SpendSmart_Backend.Services
             if (user == null)
                 throw new Exception("User not found");
 
-            
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.Password);
 
             if (!isPasswordValid)
                 throw new Exception("Incorrect password");
+
+            if (!user.IsEmailVerified)
+                throw new Exception("Please verify your email before logging in.");
 
             var token = $"fake-jwt-token-for-{user.UserName}";
             return token;
