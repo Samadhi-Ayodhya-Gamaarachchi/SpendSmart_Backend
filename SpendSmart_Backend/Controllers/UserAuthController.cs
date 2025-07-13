@@ -73,7 +73,7 @@ namespace SpendSmart_Backend.Controllers
             return isValid ? Ok() : BadRequest(new { message = "Invalid or expired token" });
         }
 
-        
+
         [HttpGet("verify-email")]
         public async Task<IActionResult> VerifyEmail(string email, string token)
         {
@@ -88,6 +88,8 @@ namespace SpendSmart_Backend.Controllers
 
             return Ok("Email successfully verified!");
         }
+
+
 
 
 

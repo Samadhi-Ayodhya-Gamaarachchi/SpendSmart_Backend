@@ -8,6 +8,7 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // Configure services
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -53,20 +54,20 @@ builder.Services.AddAuthorization();
 // ✅ Proper CORS Configuration
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
+// Define named CORS policy
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("AllowLocalhost5173", policy =>
     {
         policy.WithOrigins("http://localhost:5173")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials(); // only needed if you're using cookies or JWT from frontend
     });
 });
 
-var app = builder.Build(); // Move this line before app.UseCors()
+var app = builder.Build();
 
-
-// Middleware pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -75,12 +76,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ✅ Enable CORS with correct policy
-app.UseCors(MyAllowSpecificOrigins);
+// ✅ Use the exact same policy name here
+app.UseCors("AllowLocalhost5173");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+app.Run(); 

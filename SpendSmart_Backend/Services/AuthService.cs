@@ -30,8 +30,6 @@ namespace SpendSmart_Backend.Services
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 return false;
 
-            var token = Guid.NewGuid().ToString();
-
             var user = new User
             {
                 UserName = dto.UserName,
@@ -39,16 +37,18 @@ namespace SpendSmart_Backend.Services
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Currency = dto.Currency,
                 IsEmailVerified = false,
-                EmailVerificationToken = token
+                EmailVerificationToken = Guid.NewGuid().ToString() // ✅ moved here
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            await _emailService.SendVerificationEmailAsync(user.Email, token, user.UserName);
+            // ✅ Send email after saving
+            await _emailService.SendVerificationEmailAsync(user.Email, user.EmailVerificationToken, user.UserName);
 
             return true;
         }
+
 
 
 
