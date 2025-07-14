@@ -25,6 +25,29 @@ namespace SpendSmart_Backend.Data
                 .WithMany(u => u.ManagedUsers)
                 .HasForeignKey(ua => ua.ManagerId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Goal>(entity =>
+            {
+                entity.Property(e => e.TargetAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CurrentAmount).HasColumnType("decimal(18,2)");
+            });
+
+            // Configure SavingRecord entity
+            modelBuilder.Entity<SavingRecord>(entity =>
+            {
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+
+                // Configure relationships
+                entity.HasOne(sr => sr.Goal)
+                    .WithMany()
+                    .HasForeignKey(sr => sr.GoalId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(sr => sr.User)
+                    .WithMany()
+                    .HasForeignKey(sr => sr.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
         }
 
         public DbSet<User> Users { get; set; }
@@ -34,6 +57,7 @@ namespace SpendSmart_Backend.Data
         public DbSet<Budget> Budgets { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Goal> Goals { get; set; }
+        public DbSet<SavingRecord> SavingRecords { get; set; }
         public DbSet<Report> Reports { get; set; }
 
         
