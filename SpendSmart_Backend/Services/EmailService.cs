@@ -52,6 +52,7 @@ namespace SpendSmart_Backend.Services
         {
             string verificationLink = $"http://localhost:5173/verify-email?email={WebUtility.UrlEncode(toEmail)}&token={token}";
 
+
             string subject = "Verify your email address";
             string body = $@"
                     <p>Hello {userName},</p>
