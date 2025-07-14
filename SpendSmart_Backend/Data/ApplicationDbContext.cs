@@ -3,22 +3,26 @@ using SpendSmart_Backend.Models;
 
 namespace SpendSmart_Backend.Data
 {
-    public class ApplicationDbContext:DbContext
+    public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
         }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Configure UserAdmin composite key
             modelBuilder.Entity<UserAdmin>()
                 .HasKey(ua => new { ua.UserId, ua.ManagerId });
-            // Add any additional configuration here
+
+            // Configure UserAdmin relationships
             modelBuilder.Entity<UserAdmin>()
-            .HasOne(ua => ua.User)
-            .WithMany(u => u.UserAdmins)
-            .HasForeignKey(ua => ua.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+                .HasOne(ua => ua.User)
+                .WithMany(u => u.UserAdmins)
+                .HasForeignKey(ua => ua.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<UserAdmin>()
                 .HasOne(ua => ua.Manager)
@@ -26,27 +30,50 @@ namespace SpendSmart_Backend.Data
                 .HasForeignKey(ua => ua.ManagerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Configure Goal entity
             modelBuilder.Entity<Goal>(entity =>
             {
-                entity.Property(e => e.TargetAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.CurrentAmount).HasColumnType("decimal(18,2)");
+                // Configure decimal precision for monetary values
+                entity.Property(e => e.TargetAmount).HasPrecision(18, 2);
+                entity.Property(e => e.CurrentAmount).HasPrecision(18, 2);
+
+                // Configure Goal-User relationship
+                entity.HasOne(g => g.User)
+                    .WithMany()
+                    .HasForeignKey(g => g.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Configure SavingRecord entity
             modelBuilder.Entity<SavingRecord>(entity =>
             {
-                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+                // Configure decimal precision for monetary values
+                entity.Property(e => e.Amount).HasPrecision(18, 2);
 
-                // Configure relationships
+                // Configure SavingRecord-Goal relationship
                 entity.HasOne(sr => sr.Goal)
-                    .WithMany()
+                    .WithMany(g => g.SavingRecords)
                     .HasForeignKey(sr => sr.GoalId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                // Configure SavingRecord-User relationship
                 entity.HasOne(sr => sr.User)
                     .WithMany()
                     .HasForeignKey(sr => sr.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure Budget entity (if it exists)
+            modelBuilder.Entity<Budget>(entity =>
+            {
+                entity.Property(b => b.AllocatedAmount).HasPrecision(18, 2);
+                entity.Property(b => b.SpendAmount).HasPrecision(18, 2);
+            });
+
+            // Configure Transaction entity
+            modelBuilder.Entity<Transaction>(entity =>
+            {
+                entity.Property(t => t.Amount).HasPrecision(18, 2);
             });
         }
 
@@ -59,8 +86,5 @@ namespace SpendSmart_Backend.Data
         public DbSet<Goal> Goals { get; set; }
         public DbSet<SavingRecord> SavingRecords { get; set; }
         public DbSet<Report> Reports { get; set; }
-
-        
     }
-    
 }
