@@ -9,6 +9,7 @@ using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 
 
+
 // Configure services
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -21,6 +22,20 @@ builder.Services.AddSwaggerGen();
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174",
+                             "http://localhost:5175", "http://localhost:5176", "http://localhost:5177",
+                             "https://localhost:3000", "https://localhost:5173", "https://localhost:5174",
+                             "https://localhost:5175", "https://localhost:5176", "https://localhost:5177")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
 
 // Scoped Services
 builder.Services.AddScoped<AuthService>();
@@ -55,15 +70,8 @@ builder.Services.AddAuthorization();
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 // Define named CORS policy
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowLocalhost5173", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials(); // only needed if you're using cookies or JWT from frontend
-    });
+
+
 });
 
 var app = builder.Build();
@@ -74,7 +82,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Temporarily disable HTTPS redirection for testing
+// app.UseHttpsRedirection();
+
+// Use CORS policy
+app.UseCors("AllowReactApp");
 
 // ✅ Use the exact same policy name here
 app.UseCors("AllowLocalhost5173");
