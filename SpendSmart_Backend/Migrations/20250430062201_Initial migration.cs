@@ -263,5 +263,6 @@ namespace SpendSmart_Backend.Migrations
             migrationBuilder.DropTable(
                 name: "Users");
         }
+
     }
 }

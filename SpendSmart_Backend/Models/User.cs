@@ -8,12 +8,23 @@ namespace SpendSmart_Backend.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
+        [Required]
         public string UserName { get; set; }
+        [Required]
         public string Password { get; set; }
+        [Required]
         public string? FirstName { get; set; }
+        [Required]
         public string? LastName { get; set; }
+        [Required]
         public string Email { get; set; }
+        [Required]
         public string Currency { get; set; }
+        //profile picture settings
+        public string? ProfilePictureUrl { get; set; }
+        public string? ProfilePicturePath { get; set; }
+        public DateTime CreatedAt { get; set; } 
+        public DateTime UpdatedAt { get; set; } 
 
         public ICollection<Transaction> Transactions { get; set; }
         public ICollection<Report> Reports { get; set; }
