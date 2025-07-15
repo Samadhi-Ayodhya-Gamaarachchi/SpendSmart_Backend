@@ -8,42 +8,42 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-
-
-// Configure services
+// 1. Add Controllers with camelCase JSON serialization
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 });
 
-
+// 2. Swagger setup
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Database
+// 3. Database Configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
 
+// 4. CORS Policy for React Frontend
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactApp",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174",
-                             "http://localhost:5175", "http://localhost:5176", "http://localhost:5177",
-                             "https://localhost:3000", "https://localhost:5173", "https://localhost:5174",
-                             "https://localhost:5175", "https://localhost:5176", "https://localhost:5177")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-        });
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3000", "http://localhost:5173", "http://localhost:5174",
+                "http://localhost:5175", "http://localhost:5176", "http://localhost:5177",
+                "https://localhost:3000", "https://localhost:5173", "https://localhost:5174",
+                "https://localhost:5175", "https://localhost:5176", "https://localhost:5177"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
-// Scoped Services
+// 5. Scoped Services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailService>();
 
-// JWT Authentication
+// 6. JWT Authentication Setup
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
@@ -68,37 +68,27 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// ✅ Proper CORS Configuration
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
-// Define named CORS policy
-
-
-});
-
+// 7. Build Application
 var app = builder.Build();
 
-app.UseCors("AllowFrontend");
-
-
+// 8. Swagger UI in Development
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Temporarily disable HTTPS redirection for testing
-// app.UseHttpsRedirection();
+// Optional: Enable HTTPS redirection in production
+// if (!app.Environment.IsDevelopment())
+// {
+//     app.UseHttpsRedirection();
+// }
 
-// Use CORS policy
+// 9. Middleware pipeline
 app.UseCors("AllowReactApp");
-
-// ✅ Use the exact same policy name here
-app.UseCors("AllowLocalhost5173");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run(); 
+app.Run();
