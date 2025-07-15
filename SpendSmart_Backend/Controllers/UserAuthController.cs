@@ -73,20 +73,27 @@ namespace SpendSmart_Backend.Controllers
             return isValid ? Ok() : BadRequest(new { message = "Invalid or expired token" });
         }
 
-
         [HttpGet("verify-email")]
         public async Task<IActionResult> VerifyEmail(string email, string token)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-            if (user == null || user.EmailVerificationToken != token)
-                return BadRequest("Invalid verification link.");
+            if (user == null)
+                return BadRequest(new { success = false, message = "User not found." });
+
+            // Check if already verified
+            if (user.IsEmailVerified)
+                return Ok(new { success = true, message = "Email is already verified!" });
+
+            // Check token
+            if (user.EmailVerificationToken != token)
+                return BadRequest(new { success = false, message = "Invalid verification link." });
 
             user.IsEmailVerified = true;
             user.EmailVerificationToken = null;
             await _context.SaveChangesAsync();
 
-            return Ok("Email successfully verified!");
+            return Ok(new { success = true, message = "Email successfully verified!" });
         }
 
 
