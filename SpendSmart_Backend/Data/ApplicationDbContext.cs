@@ -13,7 +13,7 @@ namespace SpendSmart_Backend.Data
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<UserAdmin>()
                 .HasKey(ua => new { ua.UserId, ua.ManagerId });
-            // Add any additional configuration here
+            
             modelBuilder.Entity<UserAdmin>()
             .HasOne(ua => ua.User)
             .WithMany(u => u.UserAdmins)
