@@ -10,11 +10,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 
+
 // Configure services
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 });
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -75,6 +77,9 @@ var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 });
 
 var app = builder.Build();
+
+app.UseCors("AllowFrontend");
+
 
 if (app.Environment.IsDevelopment())
 {
