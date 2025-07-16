@@ -14,5 +14,12 @@ namespace SpendSmart_Backend.Models
        
 
         public ICollection<UserAdmin> UserAdmins { get; set; }
+
+        public string? ResetToken { get; set; }
+        public DateTime? ResetTokenExpiry { get; set; }
+
+        public bool IsEmailVerified { get; set; } = false;
+        public string? EmailVerificationToken { get; set; }
+
     }
 }
