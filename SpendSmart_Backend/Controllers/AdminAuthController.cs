@@ -27,7 +27,7 @@ namespace SpendSmart_Backend.Controllers
             if (!success)
                 return BadRequest(new { message = "Registration failed" });
 
-            return Ok(new { message = "Admin registered successfully" });
+            return Ok(new { message = "Admin Registration successful! Please check your email to verify" });
         }
 
         // POST: /api/admin/auth/login
@@ -49,7 +49,7 @@ namespace SpendSmart_Backend.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
-            var result = await _authService.GenerateResetTokenAsync(dto.Email);
+            var result = await _authService.GenerateAdminResetTokenAsync(dto.Email);
             if (!result)
                 return BadRequest(new { message = "Email not found" });
 
@@ -60,7 +60,7 @@ namespace SpendSmart_Backend.Controllers
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
-            var result = await _authService.ResetPasswordAsync(dto.Token, dto.NewPassword);
+            var result = await _authService.ResetAdminPasswordAsync(dto.Token, dto.NewPassword);
             if (!result)
                 return BadRequest(new { message = "Invalid or expired token" });
 
@@ -71,7 +71,7 @@ namespace SpendSmart_Backend.Controllers
         [HttpPost("validate-reset-token")]
         public async Task<IActionResult> ValidateResetToken([FromBody] TokenDto dto)
         {
-            var isValid = await _authService.ValidateResetTokenAsync(dto.Token);
+            var isValid = await _authService.ValidateAdminResetTokenAsync(dto.Token);
             return isValid ? Ok() : BadRequest(new { message = "Invalid or expired token" });
         }
 
@@ -79,16 +79,23 @@ namespace SpendSmart_Backend.Controllers
         [HttpGet("verify-email")]
         public async Task<IActionResult> VerifyEmail([FromQuery] string email, [FromQuery] string token)
         {
-            var admin = await _context.Admins.FirstOrDefaultAsync(u => u.Email == email);
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == email);
 
-            if (admin == null || admin.EmailVerificationToken != token)
-                return BadRequest(new { message = "Invalid verification link." });
+            if (admin == null)
+                return BadRequest(new { success = false, message = "User not found." });
+
+            if (admin.IsEmailVerified)
+                return Ok(new { success = true, message = "Email is already verified!" });
+
+            if (admin.EmailVerificationToken != token)
+                return BadRequest(new { success = false, message = "Invalid verification link." });
 
             admin.IsEmailVerified = true;
             admin.EmailVerificationToken = null;
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Email successfully verified!" });
+            return Ok(new { success = true, message = "Email successfully verified!" });
         }
+
     }
 }

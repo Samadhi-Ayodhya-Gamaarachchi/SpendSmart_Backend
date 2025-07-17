@@ -60,17 +60,24 @@ namespace SpendSmart_Backend.Services
             if (await _context.Admins.AnyAsync(a => a.Email == dto.Email))
                 return false;
 
+            // Generate token before saving
+            var verificationToken = Guid.NewGuid().ToString();
+
             var admin = new Admin
             {
                 UserName = dto.UserName,
                 Email = dto.Email,
-                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                EmailVerificationToken = verificationToken
             };
 
             _context.Admins.Add(admin);
             await _context.SaveChangesAsync();
+
+            await _emailService.SendAdminVerificationEmailAsync(admin.Email, verificationToken, admin.UserName);
             return true;
         }
+  
 
         public async Task<string> LoginUser(LoginDto dto)
         {
@@ -169,6 +176,44 @@ namespace SpendSmart_Backend.Services
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.ResetToken == token && u.ResetTokenExpiry > DateTime.UtcNow);
             return user != null;
+        }
+
+        public async Task<bool> GenerateAdminResetTokenAsync(string email)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == email);
+            if (admin == null) return false;
+
+            admin.ResetToken = Guid.NewGuid().ToString();
+            admin.ResetTokenExpiry = DateTime.UtcNow.AddHours(1);
+
+            await _context.SaveChangesAsync();
+
+            var resetLink = $"http://localhost:5173/admin/resetpassword?token={admin.ResetToken}";
+            var body = $"Click <a href='{resetLink}'>here</a> to reset your password. This link will expire in 1 hour.";
+
+            await _emailService.SendEmailAsync(admin.Email, "Password Reset Request", body);
+
+            return true;
+        }
+
+
+        public async Task<bool> ResetAdminPasswordAsync(string token, string newPassword)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.ResetToken == token && a.ResetTokenExpiry > DateTime.UtcNow);
+            if (admin == null) return false;
+
+            admin.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            admin.ResetToken = null;
+            admin.ResetTokenExpiry = null;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ValidateAdminResetTokenAsync(string token)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.ResetToken == token && a.ResetTokenExpiry > DateTime.UtcNow);
+            return admin != null;
         }
 
 

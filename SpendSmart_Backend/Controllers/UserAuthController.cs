@@ -26,7 +26,7 @@ namespace SpendSmart_Backend.Controllers
         {
             var success = await _authService.RegisterUser(dto);
             if (!success) return BadRequest("Registration failed");
-            return Ok(new { message = "User registration successful." });
+            return Ok(new { message = "User registration successful! please check your email to verify" });
 
         }
 
