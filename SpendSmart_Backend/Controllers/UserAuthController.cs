@@ -81,11 +81,11 @@ namespace SpendSmart_Backend.Controllers
             if (user == null)
                 return BadRequest(new { success = false, message = "User not found." });
 
-            // Check if already verified
+            
             if (user.IsEmailVerified)
                 return Ok(new { success = true, message = "Email is already verified!" });
 
-            // Check token
+            
             if (user.EmailVerificationToken != token)
                 return BadRequest(new { success = false, message = "Invalid verification link." });
 
