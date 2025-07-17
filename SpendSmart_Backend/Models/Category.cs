@@ -12,5 +12,8 @@ namespace SpendSmart_Backend.Models
         public string Type { get; set; }
         public ICollection<Transaction> Transactions { get; set; }
         public ICollection<Budget> Budgets { get; set; }
+
+        // Navigation property for BudgetCategories
+        public virtual ICollection<BudgetCategory> BudgetCategories { get; set; } = new List<BudgetCategory>();
     }
 }

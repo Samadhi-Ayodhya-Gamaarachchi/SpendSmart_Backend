@@ -11,7 +11,7 @@ namespace SpendSmart_Backend.Models
         public DateTime MonthYear { get; set; }
         public decimal AllocatedAmount { get; set; }
         public decimal SpendAmount { get; set; }
-        public string Description { get; set; }
+        public string? Description { get; set; }
         public int UserId { get; set; }
         public int CategoryId { get; set; }
 
@@ -20,5 +20,8 @@ namespace SpendSmart_Backend.Models
 
         [ForeignKey("CategoryId")]
         public Category Category { get; set; }
+
+        // Navigation property for BudgetCategories
+        public virtual ICollection<BudgetCategory> BudgetCategories { get; set; } = new List<BudgetCategory>();
     }
 }

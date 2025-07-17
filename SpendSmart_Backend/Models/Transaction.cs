@@ -11,6 +11,10 @@ namespace SpendSmart_Backend.Models
         public string Type { get; set; }
         public int CategoryId { get; set; }
         public decimal Amount { get; set; }
+
+        public int? BudgetCategoryId { get; set; } // Nullable to allow transactions not linked to a budget category
+        [ForeignKey("BudgetCategoryId")]
+        public BudgetCategory? BudgetCategory { get; set; } // Nullable to allow transactions not linked to a budget category
         public DateTime Date { get; set; }
         public string? Description { get; set; }
         public int UserId { get; set; }
