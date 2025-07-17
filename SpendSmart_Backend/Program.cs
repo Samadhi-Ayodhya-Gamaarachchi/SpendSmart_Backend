@@ -15,8 +15,8 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(
-                "http://localhost:5176",    // Your Vite frontend port
-                "https://localhost:5176 "    // HTTPS version of your frontend
+                "http://localhost:5173",    // Your Vite frontend port
+                "https://localhost:5173 "    // HTTPS version of your frontend
             )
             .AllowAnyHeader()
             .AllowAnyMethod()

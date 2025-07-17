@@ -26,7 +26,7 @@ namespace SpendSmart_Backend.Services
             _logger = logger;
             _configuration = configuration;
 
-            // Create uploads directory path
+            // Create uploads directory path (for fallback if needed)
             _uploadsPath = Path.Combine(_environment.WebRootPath ?? _environment.ContentRootPath, "uploads", "profile-pictures");
 
             // Ensure uploads directory exists
@@ -63,24 +63,18 @@ namespace SpendSmart_Backend.Services
                     };
                 }
 
-                // Delete existing profile picture if exists
-                if (!string.IsNullOrEmpty(user.ProfilePicturePath))
-                {
-                    await DeleteExistingProfilePictureFileAsync(user.ProfilePicturePath);
-                }
-
                 // Generate unique filename
                 var fileName = GenerateUniqueFileName(uploadDto.UserId, uploadDto.File.FileName);
                 var filePath = Path.Combine(_uploadsPath, fileName);
                 var relativePath = Path.Combine("uploads", "profile-pictures", fileName).Replace("\\", "/");
 
-                // Save file to disk
+                // Save file to disk (as backup)
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await uploadDto.File.CopyToAsync(stream);
                 }
 
-                // Generate URL
+                // Generate URL (this will be replaced by Firebase URL from frontend)
                 var baseUrl = GetBaseUrl();
                 var profilePictureUrl = $"{baseUrl}/{relativePath}";
 
@@ -113,6 +107,55 @@ namespace SpendSmart_Backend.Services
             }
         }
 
+        public async Task<ProfilePictureResponseDto> UpdateProfilePictureUrlAsync(UpdateProfilePictureUrlDto updateDto)
+        {
+            try
+            {
+                _logger.LogInformation($"Updating profile picture URL for user {updateDto.UserId}");
+
+                // Check if user exists
+                var user = await _context.Users.FindAsync(updateDto.UserId);
+                if (user == null)
+                {
+                    _logger.LogWarning($"User {updateDto.UserId} not found");
+                    return new ProfilePictureResponseDto
+                    {
+                        Success = false,
+                        Message = "User not found"
+                    };
+                }
+
+                // Update user profile picture URL (from Firebase)
+                user.ProfilePictureUrl = updateDto.ProfilePictureUrl;
+                user.ProfilePicturePath = updateDto.FileName; // Store Firebase filename
+                user.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Profile picture URL updated successfully for user {updateDto.UserId}");
+
+                return new ProfilePictureResponseDto
+                {
+                    Success = true,
+                    Message = updateDto.ProfilePictureUrl != null ?
+                        "Profile picture URL updated successfully!" :
+                        "Profile picture removed successfully!",
+                    ProfilePictureUrl = updateDto.ProfilePictureUrl,
+                    FileName = updateDto.FileName,
+                    UploadedAt = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating profile picture URL for user {updateDto.UserId}");
+                return new ProfilePictureResponseDto
+                {
+                    Success = false,
+                    Message = $"An error occurred while updating the profile picture URL: {ex.Message}"
+                };
+            }
+        }
+
         public async Task<DeleteProfilePictureResponseDto> DeleteProfilePictureAsync(int userId)
         {
             try
@@ -130,7 +173,7 @@ namespace SpendSmart_Backend.Services
                     };
                 }
 
-                if (string.IsNullOrEmpty(user.ProfilePicturePath))
+                if (string.IsNullOrEmpty(user.ProfilePictureUrl))
                 {
                     _logger.LogWarning($"No profile picture found for user {userId}");
                     return new DeleteProfilePictureResponseDto
@@ -140,8 +183,11 @@ namespace SpendSmart_Backend.Services
                     };
                 }
 
-                // Delete file from disk
-                await DeleteExistingProfilePictureFileAsync(user.ProfilePicturePath);
+                // Delete file from disk if it exists (backup file)
+                if (!string.IsNullOrEmpty(user.ProfilePicturePath))
+                {
+                    await DeleteExistingProfilePictureFileAsync(user.ProfilePicturePath);
+                }
 
                 // Update user in database
                 user.ProfilePictureUrl = null;
@@ -285,7 +331,7 @@ namespace SpendSmart_Backend.Services
 
         private string GetBaseUrl()
         {
-            return _configuration["BaseUrl"] ?? "https://localhost:7000";
+            return _configuration["BaseUrl"] ?? "https://localhost:7211";
         }
 
         private void EnsureUploadsDirectoryExists()

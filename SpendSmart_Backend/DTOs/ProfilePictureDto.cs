@@ -12,6 +12,18 @@ namespace SpendSmart_Backend.DTOs
         public int UserId { get; set; }
     }
 
+    public class UpdateProfilePictureUrlDto
+    {
+        [Required(ErrorMessage = "User ID is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "User ID must be greater than 0")]
+        public int UserId { get; set; }
+
+        public string? ProfilePictureUrl { get; set; }
+
+        public string? FileName { get; set; }
+    }
+
+
     public class ProfilePictureResponseDto
     {
         public bool Success { get; set; }

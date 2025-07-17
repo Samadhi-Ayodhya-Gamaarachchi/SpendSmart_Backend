@@ -85,6 +85,50 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
+        /// <summary>
+        /// Update profile picture URL (for Firebase integration)
+        /// </summary>
+        /// <param name="request">Update profile picture URL request</param>
+        /// <returns>Update result</returns>
+        [HttpPut("update-url")]
+        [ProducesResponseType(typeof(ProfilePictureResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProfilePictureResponseDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateProfilePictureUrl([FromBody] UpdateProfilePictureUrlDto request)
+        {
+            try
+            {
+                _logger.LogInformation($"Update profile picture URL request received for user {request.UserId}");
+
+                if (request.UserId <= 0)
+                {
+                    return BadRequest(new ProfilePictureResponseDto
+                    {
+                        Success = false,
+                        Message = "Invalid user ID"
+                    });
+                }
+
+                var result = await _profilePictureService.UpdateProfilePictureUrlAsync(request);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in UpdateProfilePictureUrl endpoint");
+                return StatusCode(500, new ProfilePictureResponseDto
+                {
+                    Success = false,
+                    Message = "Internal server error occurred"
+                });
+            }
+        }
+
 
         /// <summary>
         /// Delete a user's profile picture

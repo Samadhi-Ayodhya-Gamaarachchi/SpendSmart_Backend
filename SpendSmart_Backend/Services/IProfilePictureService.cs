@@ -5,6 +5,7 @@ namespace SpendSmart_Backend.Services
     public interface IProfilePictureService
     {
         Task<ProfilePictureResponseDto> UploadProfilePictureAsync(ProfilePictureUploadDto uploadDto);
+        Task<ProfilePictureResponseDto> UpdateProfilePictureUrlAsync(UpdateProfilePictureUrlDto updateDto);
         Task<DeleteProfilePictureResponseDto> DeleteProfilePictureAsync(int userId);
         Task<string?> GetProfilePictureUrlAsync(int userId);
         Task<UserProfileDto?> GetUserProfileAsync(int userId);
