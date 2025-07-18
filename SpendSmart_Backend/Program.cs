@@ -8,8 +8,6 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-
 // Configure services
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -23,19 +21,22 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
 
+// CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactApp",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174",
-                             "http://localhost:5175", "http://localhost:5176", "http://localhost:5177",
-                             "https://localhost:3000", "https://localhost:5173", "https://localhost:5174",
-                             "https://localhost:5175", "https://localhost:5176", "https://localhost:5177")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-        });
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins(
+            "http://localhost:3000", "http://localhost:5173", "http://localhost:5174",
+            "http://localhost:5175", "http://localhost:5176", "http://localhost:5177",
+            "https://localhost:3000", "https://localhost:5173", "https://localhost:5174",
+            "https://localhost:5175", "https://localhost:5176", "https://localhost:5177"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
+    });
+});
 
 // Scoped Services
 builder.Services.AddScoped<AuthService>();
@@ -66,14 +67,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// ✅ Proper CORS Configuration
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
-// Define named CORS policy
-
-
-});
-
+// Build app
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -85,15 +79,12 @@ if (app.Environment.IsDevelopment())
 // Temporarily disable HTTPS redirection for testing
 // app.UseHttpsRedirection();
 
-// Use CORS policy
+// Use CORS policy (use only one policy name, not two different ones)
 app.UseCors("AllowReactApp");
-
-// ✅ Use the exact same policy name here
-app.UseCors("AllowLocalhost5173");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run(); 
+app.Run();
