@@ -66,7 +66,7 @@ namespace SpendSmart_Backend.Controllers
             return CreatedAtAction(nameof(GetAdmin), new { id = admin.Id }, admin);
         }
 
-        // PUT: api/AdminProfile/{id} - UPDATE admin profile (Your main CRUD operation!)
+        // PUT: api/AdminProfile/{id} - UPDATE admin profile (Optimized for performance!)
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProfile(int id, AdminProfileUpdateDto adminProfileUpdateDto)
         {
@@ -78,25 +78,13 @@ namespace SpendSmart_Backend.Controllers
                 return NotFound($"Admin with ID {id} not found.");
             }
 
-            // Security Check 1: Verify current password if provided
-            if (!string.IsNullOrWhiteSpace(adminProfileUpdateDto.CurrentPassword))
-            {
-                var hashedCurrentPassword = HashPassword(adminProfileUpdateDto.CurrentPassword);
-                if (admin.Password != hashedCurrentPassword)
-                {
-                    return BadRequest(new { message = "Current password is incorrect." });
-                }
-            }
-            else if (!string.IsNullOrWhiteSpace(adminProfileUpdateDto.Password))
-            {
-                // Require current password when changing password
-                return BadRequest(new { message = "Current password is required to change password." });
-            }
+            // PERFORMANCE OPTIMIZATION: Only validate email uniqueness if email is actually changing
+            bool isEmailChanging = !string.IsNullOrWhiteSpace(adminProfileUpdateDto.Email) && 
+                                   adminProfileUpdateDto.Email != admin.Email;
 
-            // Security Check 2: Email uniqueness validation
-            if (!string.IsNullOrWhiteSpace(adminProfileUpdateDto.Email) && 
-                adminProfileUpdateDto.Email != admin.Email)
+            if (isEmailChanging)
             {
+                // Only check email uniqueness if email is actually changing
                 var existingAdmin = await _context.Admins
                     .FirstOrDefaultAsync(a => a.Email == adminProfileUpdateDto.Email && a.Id != id);
                 
@@ -106,12 +94,32 @@ namespace SpendSmart_Backend.Controllers
                 }
             }
 
-            // Map DTO properties to Admin entity
+            // Security Check: Verify current password if provided (only for password changes)
+            bool isPasswordChanging = !string.IsNullOrWhiteSpace(adminProfileUpdateDto.Password);
+            
+            if (isPasswordChanging)
+            {
+                if (string.IsNullOrWhiteSpace(adminProfileUpdateDto.CurrentPassword))
+                {
+                    return BadRequest(new { message = "Current password is required to change password." });
+                }
+                
+                var hashedCurrentPassword = HashPassword(adminProfileUpdateDto.CurrentPassword);
+                if (admin.Password != hashedCurrentPassword)
+                {
+                    return BadRequest(new { message = "Current password is incorrect." });
+                }
+            }
+
+            // Map DTO properties to Admin entity (only update changed fields)
             admin.Name = adminProfileUpdateDto.Name;
-            admin.Email = adminProfileUpdateDto.Email;
+            if (isEmailChanging)
+            {
+                admin.Email = adminProfileUpdateDto.Email;
+            }
             
             // Only update password if it's provided
-            if (!string.IsNullOrWhiteSpace(adminProfileUpdateDto.Password))
+            if (isPasswordChanging)
             {
                 // Hash the password before storing
                 admin.Password = HashPassword(adminProfileUpdateDto.Password);
@@ -173,6 +181,172 @@ namespace SpendSmart_Backend.Controllers
                     builder.Append(hashBytes[i].ToString("x2"));
                 }
                 return builder.ToString();
+            }
+        }
+
+        // ==================== PROFILE PICTURE CRUD OPERATIONS ====================
+
+        // GET: api/AdminProfile/{id}/profile-picture - Get admin profile picture
+        [HttpGet("{id}/profile-picture")]
+        public async Task<ActionResult<ProfilePictureResponseDto>> GetProfilePicture(int id)
+        {
+            try
+            {
+                var admin = await _context.Admins.FindAsync(id);
+                if (admin == null)
+                {
+                    return NotFound($"Admin with ID {id} not found.");
+                }
+
+                if (string.IsNullOrEmpty(admin.ProfilePicture))
+                {
+                    return NotFound("No profile picture found for this admin.");
+                }
+
+                var response = new ProfilePictureResponseDto
+                {
+                    Base64Image = admin.ProfilePicture,
+                    FileName = admin.ProfilePictureFileName,
+                    UploadedAt = admin.ProfilePictureUploadedAt
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = "Failed to retrieve profile picture", details = ex.Message });
+            }
+        }
+
+        // POST: api/AdminProfile/{id}/profile-picture - Upload new profile picture
+        [HttpPost("{id}/profile-picture")]
+        public async Task<ActionResult> UploadProfilePicture(int id, [FromForm] IFormFile file)
+        {
+            try
+            {
+                // Validate admin exists
+                var admin = await _context.Admins.FindAsync(id);
+                if (admin == null)
+                {
+                    return NotFound($"Admin with ID {id} not found.");
+                }
+
+                // Validate file
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("No file provided.");
+                }
+
+                // Validate file type
+                var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/webp" };
+                if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                {
+                    return BadRequest("Invalid file type. Only JPEG, PNG, and WebP images are allowed.");
+                }
+
+                // Validate file size (2MB max instead of 5MB for better performance)
+                const int maxSize = 2 * 1024 * 1024; // 2MB
+                if (file.Length > maxSize)
+                {
+                    return BadRequest("File size too large. Maximum size is 2MB.");
+                }
+
+                // Convert file to base64 with size optimization
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                var fileBytes = memoryStream.ToArray();
+                
+                // For better performance, you might want to resize large images here
+                // For now, we'll just convert to base64
+                var base64String = Convert.ToBase64String(fileBytes);
+                var dataUrl = $"data:{file.ContentType};base64,{base64String}";
+
+                // Update admin profile picture
+                admin.ProfilePicture = dataUrl;
+                admin.ProfilePictureFileName = file.FileName;
+                admin.ProfilePictureUploadedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { 
+                    message = "Profile picture uploaded successfully", 
+                    fileName = file.FileName,
+                    uploadedAt = admin.ProfilePictureUploadedAt
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = "Failed to upload profile picture", details = ex.Message });
+            }
+        }
+
+        // PUT: api/AdminProfile/{id}/profile-picture - Update existing profile picture
+        [HttpPut("{id}/profile-picture")]
+        public async Task<ActionResult> UpdateProfilePicture(int id, [FromForm] IFormFile file)
+        {
+            // Same logic as upload - just different HTTP method for REST compliance
+            return await UploadProfilePicture(id, file);
+        }
+
+        // DELETE: api/AdminProfile/{id}/profile-picture - Delete profile picture
+        [HttpDelete("{id}/profile-picture")]
+        public async Task<ActionResult> DeleteProfilePicture(int id)
+        {
+            try
+            {
+                var admin = await _context.Admins.FindAsync(id);
+                if (admin == null)
+                {
+                    return NotFound($"Admin with ID {id} not found.");
+                }
+
+                if (string.IsNullOrEmpty(admin.ProfilePicture))
+                {
+                    return NotFound("No profile picture found to delete.");
+                }
+
+                // Clear profile picture data
+                admin.ProfilePicture = null;
+                admin.ProfilePictureFileName = null;
+                admin.ProfilePictureUploadedAt = null;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Profile picture deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = "Failed to delete profile picture", details = ex.Message });
+            }
+        }
+
+        // GET: api/AdminProfile/{id}/profile-info - Get admin info including profile picture status
+        [HttpGet("{id}/profile-info")]
+        public async Task<ActionResult<AdminResponseDto>> GetAdminWithProfileInfo(int id)
+        {
+            try
+            {
+                var admin = await _context.Admins.FindAsync(id);
+                if (admin == null)
+                {
+                    return NotFound($"Admin with ID {id} not found.");
+                }
+
+                var response = new AdminResponseDto
+                {
+                    Id = admin.Id,
+                    Name = admin.Name,
+                    Email = admin.Email,
+                    ProfilePictureUrl = admin.ProfilePicture,
+                    ProfilePictureFileName = admin.ProfilePictureFileName,
+                    ProfilePictureUploadedAt = admin.ProfilePictureUploadedAt
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = "Failed to retrieve admin profile info", details = ex.Message });
             }
         }
     }

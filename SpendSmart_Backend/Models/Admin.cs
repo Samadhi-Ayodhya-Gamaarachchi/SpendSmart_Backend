@@ -11,6 +11,11 @@ namespace SpendSmart_Backend.Models
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        
+        // Profile Picture Properties
+        public string? ProfilePicture { get; set; } // Base64 encoded image
+        public string? ProfilePictureFileName { get; set; } // Original file name
+        public DateTime? ProfilePictureUploadedAt { get; set; } // Upload timestamp
 
         public ICollection<UserAdmin> UserAdmins { get; set; } = new List<UserAdmin>();
     }
