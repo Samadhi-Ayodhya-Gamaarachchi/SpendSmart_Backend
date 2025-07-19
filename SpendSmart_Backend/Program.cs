@@ -16,13 +16,17 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(
                 "http://localhost:5173",    // Your Vite frontend port
-                "https://localhost:5173 "    // HTTPS version of your frontend
+                "https://localhost:5173 " ,   // HTTPS version of your frontend
+                "http://localhost:5174",     // Vite alternative
+                "http://localhost:5175"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // If you need to send cookies/auth headers
         });
 });
+
+
 
 // Add Entity Framework DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
