@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
+using SpendSmart_Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
+builder.Services.AddHostedService<RecurringTransactionBackgroundService>();
 
 var app = builder.Build();
 

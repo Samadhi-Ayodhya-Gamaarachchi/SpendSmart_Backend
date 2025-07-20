@@ -17,18 +17,25 @@ namespace SpendSmart_Backend.Controllers
         }
 
         [HttpGet("GetCategories")]
-        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories([FromQuery] string? type)
         {
-            var categories = await _context.Categories
-                .AsNoTracking()
+            var categories = _context.Categories.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                categories = categories.Where(c => c.Type == type);
+            }
+
+            var result = await categories
                 .Select(c => new CategoryDto
                 {
                     Id = c.Id,
-                    Name = c.Name
+                    Name = c.Name,
+                    Type = c.Type,
                 })
                 .ToListAsync();
 
-            return Ok(categories);
+            return Ok(result);
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.DTOs;
 using SpendSmart_Backend.Models;
+using SpendSmart_Backend.Services;
 
 namespace SpendSmart_Backend.Controllers
 {
@@ -10,65 +11,68 @@ namespace SpendSmart_Backend.Controllers
     [Route("api/[controller]")]
     public class TransactionController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ITransactionService _transactionService;
 
-        public TransactionController(ApplicationDbContext context)
+        public TransactionController(ITransactionService transactionService)
         {
-            _context = context;
+            _transactionService = transactionService;
         }
 
         [HttpPost("CreateTransaction")]
         public async Task<IActionResult> CreateTransaction([FromBody] TransactionDto transactionDto)
         {
-            if (transactionDto == null)
+            try
             {
-                return BadRequest("Transaction data is null.");
+                if(transactionDto == null)
+                {
+                    return BadRequest("Transaction data is null");
+                }
+                var transaction = await _transactionService.CreateTransactionAsync(transactionDto);
+                return Ok(transaction);
+
             }
-            var transaction = new Transaction
+            catch(Exception ex)
             {
-                Type = transactionDto.Type,
-                CategoryId = transactionDto.CategoryId,
-                Amount = transactionDto.Amount,
-                Date = transactionDto.Date,
-                Description = transactionDto.Description,
-                UserId = transactionDto.UserId
-            };
-            _context.Transactions.Add(transaction);
-            await _context.SaveChangesAsync();
-            return Ok(transaction);
+                return StatusCode(500, $"Error creating transaction {ex.Message}");
+            }
         }
 
         [HttpGet("GetTransaction")]
-        public async Task<IActionResult> GetTransactions()
+        public async Task<IActionResult> GetTransaction(
+            [FromQuery] string? type, 
+            [FromQuery] string? category, 
+            [FromQuery] DateTime? date,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] bool? amountByDescending,
+            [FromQuery] bool? dateByDescending,
+            [FromQuery] string? sorting)
         {
-            var transactions = await _context.Transactions
-                .Include(t => t.Category)
-                .OrderByDescending(t => t.Date)
-                .Select(t => new TransactionViewDto
-                {
-                    Id = t.Id,
-                    Type = t.Type,
-                    Category = t.Category.Name,
-                    Amount = t.Amount,
-                    Date = t.Date.ToString("yyyy-MM-dd"),
-                    Description = t.Description,
-                })
-                .ToListAsync();
-
-            return Ok(transactions);
+            try
+            {
+                var transactions = await _transactionService.GetTransactionAsync(type, category, date, startDate, endDate, sorting);
+                return Ok(transactions);
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, $"Error fetching transactions {ex.Message}");
+            }
         }
 
-        [HttpDelete("DeleteTransaction/{id}")]
-        public async Task<IActionResult> DeleteTransaction(int id)
+        [HttpDelete("DeleteTransaction/{transactionId}")]
+        public async Task<IActionResult> DeleteTransaction(int transactionId)
         {
-            var transaction = await _context.Transactions.FindAsync(id);
-            if (transaction == null)
+            try
             {
-                return NotFound("Transaction not found.");
+                var result = await _transactionService.DeleteTransactionAsync(transactionId);
+                if (!result)
+                    return NotFound("Transaction not found");
+                return Ok("Transaction deleted successfully");
             }
-            _context.Transactions.Remove(transaction);
-            await _context.SaveChangesAsync();
-            return Ok("Transaction deleted successfully.");
+            catch(Exception ex)
+            {
+                return StatusCode(500, $"Error deleting transaction {ex.Message}");
+            }
         }
     }
 }

@@ -21,5 +21,6 @@ namespace SpendSmart_Backend.Models
         public ICollection<Budget> Budgets { get; set; }
         public ICollection<UserAdmin> UserAdmins { get; set; }
         public ICollection<UserAdmin> ManagedUsers { get; set; }
+        public ICollection<RecurringTransaction> RecurringTransactions { get; set; }
     }
 }
