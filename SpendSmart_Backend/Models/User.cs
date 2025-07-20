@@ -18,11 +18,7 @@ namespace SpendSmart_Backend.Models
         public ICollection<Budget> Budgets { get; set; }
         public ICollection<UserAdmin> UserAdmins { get; set; }
         public ICollection<UserAdmin> ManagedUsers { get; set; }
-
-        // Add the missing property to fix the error
         public ICollection<SavingRecord> SavingRecords { get; set; }
 
-        // Navigation property for BudgetCategories
-        public virtual ICollection<BudgetCategory> BudgetCategories { get; set; } = new List<BudgetCategory>();
     }
 }

@@ -3,10 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpendSmart_Backend.Models
 {
-    public class Transaction
+    public class RecurringTransaction
     {
         [Key]
-        public int TransactionId { get; set; }
+        public int RecurringId { get; set; }
 
         [Required]
         public int UserId { get; set; }
@@ -26,19 +26,22 @@ namespace SpendSmart_Backend.Models
         public string? Description { get; set; }
 
         [Required]
-        [Column(TypeName = "date")]
-        public DateTime TransactionDate { get; set; }
-
-        public bool IsRecurring { get; set; } = false;
-
         [MaxLength(20)]
-        public string? RecurringFrequency { get; set; } // Daily, Weekly, Monthly, Annually
+        public string Frequency { get; set; } // Daily, Weekly, Monthly, Annually
+
+        [Required]
+        [Column(TypeName = "date")]
+        public DateTime StartDate { get; set; }
 
         [Column(TypeName = "date")]
-        public DateTime? RecurringEndDate { get; set; }
+        public DateTime? EndDate { get; set; }
 
+        [Required]
+        [Column(TypeName = "date")]
+        public DateTime NextExecutionDate { get; set; }
+
+        public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Foreign keys
         [ForeignKey("UserId")]
@@ -46,8 +49,5 @@ namespace SpendSmart_Backend.Models
 
         [ForeignKey("CategoryId")]
         public virtual Category Category { get; set; }
-
-        // Navigation properties
-        public virtual ICollection<TransactionBudgetImpact> TransactionBudgetImpacts { get; set; } = new List<TransactionBudgetImpact>();
     }
 }

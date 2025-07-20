@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
+using SpendSmart_Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,9 @@ builder.Services.AddSwaggerGen();
 // Add Entity Framework - Use SQL Server database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
+
+// Register custom services for budget management
+builder.Services.AddScoped<IBudgetService, BudgetService>();
 
 // Add CORS policy for React frontend
 builder.Services.AddCors(options =>

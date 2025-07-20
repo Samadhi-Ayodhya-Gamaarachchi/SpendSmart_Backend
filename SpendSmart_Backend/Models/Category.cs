@@ -5,15 +5,13 @@ namespace SpendSmart_Backend.Models
 {
     public class Category
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string CategoryName { get; set; } // Added this property to match the usage in ApplicationDbContext  
         public string Type { get; set; }
         public ICollection<Transaction> Transactions { get; set; }
         public ICollection<Budget> Budgets { get; set; }
-
-        // Navigation property for BudgetCategories
-        public virtual ICollection<BudgetCategory> BudgetCategories { get; set; } = new List<BudgetCategory>();
+        public virtual ICollection<BudgetCategory> BudgetCategories { get; set; }
+        public virtual ICollection<TransactionBudgetImpact> TransactionBudgetImpacts { get; set; }
     }
 }
+

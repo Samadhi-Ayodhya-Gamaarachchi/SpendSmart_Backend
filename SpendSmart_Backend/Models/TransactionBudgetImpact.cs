@@ -1,14 +1,15 @@
-﻿
-// Models/BudgetCategory.cs
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpendSmart_Backend.Models
 {
-    public class BudgetCategory
+    public class TransactionBudgetImpact
     {
         [Key]
-        public int BudgetCategoryId { get; set; }
+        public int ImpactId { get; set; }
+
+        [Required]
+        public int TransactionId { get; set; }
 
         [Required]
         public int BudgetId { get; set; }
@@ -18,18 +19,14 @@ namespace SpendSmart_Backend.Models
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal AllocatedAmount { get; set; }
-
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal SpentAmount { get; set; } = 0;
-
-        [NotMapped]
-        public decimal RemainingAmount => AllocatedAmount - SpentAmount;
+        public decimal ImpactAmount { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Foreign keys
+        [ForeignKey("TransactionId")]
+        public virtual Transaction Transaction { get; set; }
+
         [ForeignKey("BudgetId")]
         public virtual Budget Budget { get; set; }
 

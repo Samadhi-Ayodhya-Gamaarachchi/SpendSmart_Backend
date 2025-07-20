@@ -30,16 +30,23 @@ namespace SpendSmart_Backend.Data
                 .HasForeignKey(ua => ua.ManagerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Configure User indexes
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.UserName)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
             // Configure Goal entity
             modelBuilder.Entity<Goal>(entity =>
             {
-                // Configure decimal precision for monetary values
                 entity.Property(e => e.TargetAmount).HasPrecision(18, 2);
                 entity.Property(e => e.CurrentAmount).HasPrecision(18, 2);
 
-                // Configure Goal-User relationship with navigation property
                 entity.HasOne(g => g.User)
-                    .WithMany(u => u.Goals)  // Added navigation property
+                    .WithMany(u => u.Goals)
                     .HasForeignKey(g => g.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
@@ -47,18 +54,15 @@ namespace SpendSmart_Backend.Data
             // Configure SavingRecord entity
             modelBuilder.Entity<SavingRecord>(entity =>
             {
-                // Configure decimal precision for monetary values
                 entity.Property(e => e.Amount).HasPrecision(18, 2);
 
-                // Configure SavingRecord-Goal relationship
                 entity.HasOne(sr => sr.Goal)
                     .WithMany(g => g.SavingRecords)
                     .HasForeignKey(sr => sr.GoalId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // Configure SavingRecord-User relationship with navigation property
                 entity.HasOne(sr => sr.User)
-                    .WithMany(u => u.SavingRecords)  // Added navigation property
+                    .WithMany(u => u.SavingRecords)
                     .HasForeignKey(sr => sr.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
@@ -66,14 +70,36 @@ namespace SpendSmart_Backend.Data
             // Configure Budget entity
             modelBuilder.Entity<Budget>(entity =>
             {
-                entity.Property(b => b.AllocatedAmount).HasPrecision(18, 2);
-                entity.Property(b => b.SpendAmount).HasPrecision(18, 2);
+                entity.Property(b => b.TotalBudgetAmount).HasPrecision(18, 2);
+                entity.Property(b => b.TotalSpentAmount).HasPrecision(18, 2);
 
-                // Configure Budget-User relationship
                 entity.HasOne(b => b.User)
                     .WithMany(u => u.Budgets)
                     .HasForeignKey(b => b.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasCheckConstraint("CK_Budget_BudgetType", "[BudgetType] IN ('Monthly', 'Annually')");
+                entity.HasCheckConstraint("CK_Budget_Status", "[Status] IN ('Active', 'Completed', 'Cancelled')");
+            });
+
+            // Configure BudgetCategory entity
+            modelBuilder.Entity<BudgetCategory>(entity =>
+            {
+                entity.Property(bc => bc.AllocatedAmount).HasPrecision(18, 2);
+                entity.Property(bc => bc.SpentAmount).HasPrecision(18, 2);
+
+                entity.HasOne(bc => bc.Budget)
+                    .WithMany(b => b.BudgetCategories)
+                    .HasForeignKey(bc => bc.BudgetId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(bc => bc.Category)
+                    .WithMany(c => c.BudgetCategories)
+                    .HasForeignKey(bc => bc.CategoryId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(bc => new { bc.BudgetId, bc.CategoryId })
+                    .IsUnique();
             });
 
             // Configure Transaction entity
@@ -81,55 +107,64 @@ namespace SpendSmart_Backend.Data
             {
                 entity.Property(t => t.Amount).HasPrecision(18, 2);
 
-                // Configure Transaction-User relationship
                 entity.HasOne(t => t.User)
                     .WithMany(u => u.Transactions)
                     .HasForeignKey(t => t.UserId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
 
-                // Configure Transaction-Category relationship (if CategoryId exists)
                 entity.HasOne(t => t.Category)
                     .WithMany(c => c.Transactions)
                     .HasForeignKey(t => t.CategoryId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Configure Transaction-BudgetCategory relationship (if BudgetCategoryId exists)
-                entity.HasOne(t => t.BudgetCategory)
-                    .WithMany(bc => bc.Transactions)
-                    .HasForeignKey(t => t.BudgetCategoryId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                entity.HasCheckConstraint("CK_Transaction_TransactionType", "[TransactionType] IN ('Income', 'Expense')");
+                entity.HasCheckConstraint("CK_Transaction_RecurringFrequency",
+                    "[RecurringFrequency] IN ('Daily', 'Weekly', 'Monthly', 'Annually') OR [RecurringFrequency] IS NULL");
             });
 
-            // Configure BudgetCategory entity relationships to prevent cascade conflicts
-            modelBuilder.Entity<BudgetCategory>(entity =>
+            // Configure TransactionBudgetImpact entity
+            modelBuilder.Entity<TransactionBudgetImpact>(entity =>
             {
-                // Configure decimal precision for monetary values
-                entity.Property(bc => bc.AllocatedAmount).HasPrecision(18, 2);
-                entity.Property(bc => bc.RemainingAmount).HasPrecision(18, 2);
+                entity.Property(tbi => tbi.ImpactAmount).HasPrecision(18, 2);
 
-                // Configure BudgetCategory-Budget relationship (NO ACTION to prevent cascade conflicts)
-                entity.HasOne(bc => bc.Budget)
-                    .WithMany(b => b.BudgetCategories)  // Added navigation property
-                    .HasForeignKey(bc => bc.BudgetId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne(tbi => tbi.Transaction)
+                    .WithMany(t => t.TransactionBudgetImpacts)
+                    .HasForeignKey(tbi => tbi.TransactionId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-                // Configure BudgetCategory-Category relationship (NO ACTION to prevent cascade conflicts)
-                entity.HasOne(bc => bc.Category)
-                    .WithMany(c => c.BudgetCategories)  // Added navigation property
-                    .HasForeignKey(bc => bc.CategoryId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne(tbi => tbi.Budget)
+                    .WithMany(b => b.TransactionBudgetImpacts)
+                    .HasForeignKey(tbi => tbi.BudgetId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-                // Configure BudgetCategory-User relationship (NO ACTION to prevent cascade conflicts)
-                entity.HasOne(bc => bc.User)
-                    .WithMany(u => u.BudgetCategories)  // Added navigation property
-                    .HasForeignKey(bc => bc.UserId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne(tbi => tbi.Category)
+                    .WithMany(c => c.TransactionBudgetImpacts)
+                    .HasForeignKey(tbi => tbi.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Configure Category entity
             modelBuilder.Entity<Category>(entity =>
             {
-                entity.Property(c => c.Name).HasMaxLength(100).IsRequired();
+                entity.Property(c => c.CategoryName).HasMaxLength(100).IsRequired();
+                // Only Income or Expense, removed 'Both'
+                entity.HasCheckConstraint("CK_Category_Type", "[Type] IN ('Income', 'Expense')");
+            });
+
+            // Configure RecurringTransaction entity
+            modelBuilder.Entity<RecurringTransaction>(entity =>
+            {
+                entity.Property(rt => rt.Amount).HasPrecision(18, 2);
+
+                entity.HasOne(rt => rt.User)
+                    .WithMany()
+                    .HasForeignKey(rt => rt.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(rt => rt.Category)
+                    .WithMany()
+                    .HasForeignKey(rt => rt.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Configure Report entity
@@ -140,8 +175,38 @@ namespace SpendSmart_Backend.Data
                     .HasForeignKey(r => r.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
+
+            // Create indexes for performance
+            modelBuilder.Entity<Budget>()
+                .HasIndex(b => new { b.UserId, b.Status })
+                .HasDatabaseName("IX_Budget_UserId_Status");
+
+            modelBuilder.Entity<Budget>()
+                .HasIndex(b => new { b.StartDate, b.EndDate })
+                .HasDatabaseName("IX_Budget_DateRange");
+
+            modelBuilder.Entity<Transaction>()
+                .HasIndex(t => new { t.UserId, t.TransactionDate })
+                .HasDatabaseName("IX_Transaction_UserId_Date");
+
+            modelBuilder.Entity<Transaction>()
+                .HasIndex(t => new { t.CategoryId, t.TransactionType })
+                .HasDatabaseName("IX_Transaction_Category_Type");
+
+            modelBuilder.Entity<BudgetCategory>()
+                .HasIndex(bc => bc.BudgetId)
+                .HasDatabaseName("IX_BudgetCategory_BudgetId");
+
+            modelBuilder.Entity<TransactionBudgetImpact>()
+                .HasIndex(tbi => tbi.TransactionId)
+                .HasDatabaseName("IX_TransactionBudgetImpact_TransactionId");
+
+            modelBuilder.Entity<TransactionBudgetImpact>()
+                .HasIndex(tbi => tbi.BudgetId)
+                .HasDatabaseName("IX_TransactionBudgetImpact_BudgetId");
         }
 
+        // DbSets
         public DbSet<User> Users { get; set; }
         public DbSet<Admin> Admins { get; set; }
         public DbSet<UserAdmin> UserAdmins { get; set; }
@@ -152,5 +217,7 @@ namespace SpendSmart_Backend.Data
         public DbSet<SavingRecord> SavingRecords { get; set; }
         public DbSet<Report> Reports { get; set; }
         public DbSet<BudgetCategory> BudgetCategories { get; set; }
+        public DbSet<TransactionBudgetImpact> TransactionBudgetImpacts { get; set; }
+        public DbSet<RecurringTransaction> RecurringTransactions { get; set; }
     }
 }
