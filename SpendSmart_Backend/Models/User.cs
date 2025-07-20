@@ -5,8 +5,6 @@ namespace SpendSmart_Backend.Models
 {
     public class User
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
         [Required]
         public string UserName { get; set; }
@@ -20,11 +18,13 @@ namespace SpendSmart_Backend.Models
         public string Email { get; set; }
         [Required]
         public string Currency { get; set; }
+
         //profile picture settings
         public string? ProfilePictureUrl { get; set; }
         public string? ProfilePicturePath { get; set; }
         public DateTime CreatedAt { get; set; } 
         public DateTime UpdatedAt { get; set; } 
+
 
         public ICollection<Transaction> Transactions { get; set; }
         public ICollection<Report> Reports { get; set; }
@@ -32,5 +32,14 @@ namespace SpendSmart_Backend.Models
         public ICollection<Budget> Budgets { get; set; }
         public ICollection<UserAdmin> UserAdmins { get; set; }
         public ICollection<UserAdmin> ManagedUsers { get; set; }
+
+        // Add missing properties for ResetToken and ResetTokenExpiry
+        public string? ResetToken { get; set; }
+        public DateTime? ResetTokenExpiry { get; set; }
+
+        public bool IsEmailVerified { get; set; } = false;
+        public string? EmailVerificationToken { get; set; }
+
+
     }
 }

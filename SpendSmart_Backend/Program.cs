@@ -1,14 +1,17 @@
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Services;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Add CORS services
+// Add CORS services (merged configuration)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -16,11 +19,17 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(
                 "http://localhost:5173",    // Your Vite frontend port
-                "https://localhost:5173",   // HTTPS version of your frontend (removed extra space)
+                "https://localhost:5173",   // HTTPS version of your frontend
                 "http://localhost:5174",    // Vite alternative
                 "http://localhost:5175",
+                "http://localhost:5176",    // Additional ports
+                "http://localhost:5177",
                 "http://localhost:3000",    // React default port
-                "https://localhost:3000"
+                "https://localhost:3000",
+                "https://localhost:5174",   // HTTPS versions
+                "https://localhost:5175",
+                "https://localhost:5176",
+                "https://localhost:5177"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -29,15 +38,41 @@ builder.Services.AddCors(options =>
         });
 });
 
-
-
 // Add Entity Framework DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
 
+// Scoped Services (merged from both branches)
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<IProfilePictureService, ProfilePictureService>();
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
+
+// JWT Authentication Setup
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? throw new InvalidOperationException("JWT Key is not configured"));
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(key)
+    };
+});
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<IProfilePictureService, ProfilePictureService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
