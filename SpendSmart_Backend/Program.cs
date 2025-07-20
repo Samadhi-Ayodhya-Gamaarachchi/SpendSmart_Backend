@@ -8,7 +8,8 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add Controllers with camelCase JSON serialization
+
+
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -22,12 +23,13 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
 
-// 4. CORS Policy for React Frontend
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
         policy.WithOrigins(
+
                 "http://localhost:3000", "http://localhost:5173", "http://localhost:5174",
                 "http://localhost:5175", "http://localhost:5176", "http://localhost:5177",
                 "https://localhost:3000", "https://localhost:5173", "https://localhost:5174",
@@ -36,6 +38,7 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
+
     });
 });
 
@@ -68,7 +71,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// 7. Build Application
+
 var app = builder.Build();
 
 // 8. Swagger UI in Development
@@ -84,8 +87,8 @@ if (app.Environment.IsDevelopment())
 //     app.UseHttpsRedirection();
 // }
 
-// 9. Middleware pipeline
 app.UseCors("AllowReactApp");
+
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -62,5 +62,20 @@ namespace SpendSmart_Backend.Services
 
             await SendEmailAsync(toEmail, subject, body);
         }
+
+        public async Task SendAdminVerificationEmailAsync(string toEmail, string token, string userName)
+        {
+            string verificationLink = $"http://localhost:5173/admin/verification?email={WebUtility.UrlEncode(toEmail)}&token={token}";
+
+
+            string subject = "Verify your email address";
+            string body = $@"
+                    <p>Hello {userName},</p>
+                    <p>Thanks for registering at SpendSmart. Please verify your email address by clicking the link below:</p>
+                    <p><a href='{verificationLink}'>Verify Email</a></p>
+                    <p>If you didn’t register, please ignore this message.</p>";
+
+            await SendEmailAsync(toEmail, subject, body);
+        }
     }
 }
