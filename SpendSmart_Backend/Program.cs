@@ -17,24 +17,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.WithOrigins(
-                "http://localhost:5173",    // Your Vite frontend port
-                "https://localhost:5173",   // HTTPS version of your frontend
-                "http://localhost:5174",    // Vite alternative
-                "http://localhost:5175",
-                "http://localhost:5176",    // Additional ports
-                "http://localhost:5177",
-                "http://localhost:3000",    // React default port
-                "https://localhost:3000",
-                "https://localhost:5174",   // HTTPS versions
-                "https://localhost:5175",
-                "https://localhost:5176",
-                "https://localhost:5177"
-            )
+            policy.SetIsOriginAllowed(origin => true) // Allow any origin for development
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials() // If you need to send cookies/auth headers
-            .SetIsOriginAllowed(origin => true); // Allow any origin for development
+            .AllowCredentials(); // If you need to send cookies/auth headers
         });
 });
 
@@ -112,11 +98,11 @@ app.UseSwaggerUI(c =>
 });
 
 
-// IMPORTANT: Order matters! UseCors must be before UseAuthorization
-app.UseHttpsRedirection();
-
-// Enable CORS
+// IMPORTANT: Order matters! UseCors must be before UseHttpsRedirection
+// Enable CORS first
 app.UseCors("AllowAll");
+
+app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
