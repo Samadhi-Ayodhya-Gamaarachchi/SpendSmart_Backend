@@ -36,8 +36,7 @@ namespace SpendSmart_Backend.Data
 
                 // Required fields
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
+               
                 entity.Property(e => e.Password).IsRequired().HasMaxLength(255);
 
                 // Profile picture fields (NEW)

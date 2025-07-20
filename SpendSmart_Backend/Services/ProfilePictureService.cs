@@ -243,8 +243,6 @@ namespace SpendSmart_Backend.Services
                     .Select(u => new UserProfileDto
                     {
                         Id = u.Id,
-                        FirstName = u.FirstName ?? string.Empty,
-                        LastName = u.LastName ?? string.Empty,
                         Email = u.Email,
                         ProfilePictureUrl = u.ProfilePictureUrl,
                         CreatedAt = u.CreatedAt,

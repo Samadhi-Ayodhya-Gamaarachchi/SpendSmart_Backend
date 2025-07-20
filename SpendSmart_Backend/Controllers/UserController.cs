@@ -60,9 +60,9 @@ namespace SpendSmart_Backend.Controllers
                 {
                     success = true,
                     message = "Name updated successfully!",
-                    firstName = user.FirstName,
-                    lastName = user.LastName,
-                    fullName = $"{user.FirstName} {user.LastName}".Trim()
+                    username = user.UserName,
+                    
+                    
                 });
             }
             catch (Exception ex)
@@ -113,9 +113,6 @@ namespace SpendSmart_Backend.Controllers
                 {
                     id = user.Id,
                     userName = user.UserName,
-                    firstName = user.FirstName,
-                    lastName = user.LastName,
-                    fullName = $"{user.FirstName} {user.LastName}".Trim(),
                     email = user.Email,
                     currency = user.Currency,
                     profilePictureUrl = user.ProfilePictureUrl,
