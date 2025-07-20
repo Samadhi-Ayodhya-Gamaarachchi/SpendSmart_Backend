@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connection Status Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 10px 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .test-btn { background: #007bff; color: white; }
+        .test-btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>SpendSmart Connection Test</h1>
+    
+    <div class="status info">
+        <h3>Current Status:</h3>
+        <p><strong>Frontend:</strong> http://localhost:5173 (React)</p>
+        <p><strong>Backend:</strong> https://localhost:7211 (ASP.NET Core)</p>
+    </div>
+    
+    <button class="test-btn" onclick="testHTTPS()">Test HTTPS Backend</button>
+    <button class="test-btn" onclick="testHTTP()">Test HTTP Backend</button>
+    <button class="test-btn" onclick="testAll()">Test All Endpoints</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testHTTPS() {
+            await testEndpoint('https://localhost:7211/api/EmailVerification/pending-change?userId=1', 'HTTPS Backend');
+        }
+        
+        async function testHTTP() {
+            await testEndpoint('http://localhost:5110/api/EmailVerification/pending-change?userId=1', 'HTTP Backend');
+        }
+        
+        async function testAll() {
+            document.getElementById('results').innerHTML = '<div class="status info">Testing all endpoints...</div>';
+            await testHTTPS();
+            await testHTTP();
+            await testEndpoint('https://localhost:7211/api/ProfilePicture/url/1', 'Profile Picture API');
+        }
+        
+        async function testEndpoint(url, name) {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultsDiv.innerHTML += `
+                    <div class="status success">
+                        <h4>✅ ${name} - SUCCESS</h4>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                        <p><strong>Response:</strong> <code>${JSON.stringify(data, null, 2)}</code></p>
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML += `
+                    <div class="status error">
+                        <h4>❌ ${name} - FAILED</h4>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>Solution:</strong> ${getSolution(error.message)}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function getSolution(errorMessage) {
+            if (errorMessage.includes('ERR_CERT_AUTHORITY_INVALID') || errorMessage.includes('certificate')) {
+                return 'Click on the HTTPS URL above to accept the SSL certificate, then retry.';
+            } else if (errorMessage.includes('ERR_CONNECTION_REFUSED')) {
+                return 'Backend server is not running. Check if dotnet process is active.';
+            } else if (errorMessage.includes('Network Error') || errorMessage.includes('ERR_NETWORK')) {
+                return 'Network connectivity issue. Check if both frontend and backend are running.';
+            }
+            return 'Unknown error. Check console for more details.';
+        }
+        
+        // Auto-test on page load
+        window.onload = () => {
+            testAll();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Email Update</title>
+    <script>
+        async function testEmailUpdate() {
+            try {
+                const response = await fetch('http://localhost:5110/api/EmailVerification/request-change', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        newEmail: 'test@example.com',
+                        userId: 1
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testPendingCheck() {
+            try {
+                const response = await fetch('http://localhost:5110/api/EmailVerification/pending-change?userId=1');
+                const data = await response.json();
+                document.getElementById('pending-result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('pending-result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Email Update API Test</h1>
+    
+    <h2>Test Email Change Request</h2>
+    <button onclick="testEmailUpdate()">Test Email Update</button>
+    <div id="result"></div>
+    
+    <h2>Test Pending Email Check</h2>
+    <button onclick="testPendingCheck()">Check Pending Email</button>
+    <div id="pending-result"></div>
+</body>
+</html>

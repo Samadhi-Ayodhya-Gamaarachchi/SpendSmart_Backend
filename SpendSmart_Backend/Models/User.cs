@@ -22,8 +22,8 @@ namespace SpendSmart_Backend.Models
         //profile picture settings
         public string? ProfilePictureUrl { get; set; }
         public string? ProfilePicturePath { get; set; }
-        public DateTime CreatedAt { get; set; } 
-        public DateTime UpdatedAt { get; set; } 
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
 
 
         public ICollection<Transaction> Transactions { get; set; }
@@ -40,6 +40,10 @@ namespace SpendSmart_Backend.Models
         public bool IsEmailVerified { get; set; } = false;
         public string? EmailVerificationToken { get; set; }
 
+        // Email change tracking
+        public string? PendingEmail { get; set; }
+        public string? EmailChangeToken { get; set; }
+        public DateTime? EmailChangeTokenExpiry { get; set; }
 
     }
 }

@@ -106,6 +106,7 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
+app.UseAuthentication(); // Add authentication middleware
 app.UseAuthorization();
 
 app.MapControllers();
