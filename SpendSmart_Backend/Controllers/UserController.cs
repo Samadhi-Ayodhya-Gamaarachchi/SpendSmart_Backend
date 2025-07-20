@@ -1,59 +1,168 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SpendSmart_Backend.Models;
-using SpendSmart_Backend.DTOs;
-using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
-using Microsoft.AspNetCore.Cors;
+using SpendSmart_Backend.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace SpendSmart_Backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [EnableCors("AllowReactApp")]
     public class UserController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<UserController> _logger;
 
-        public UserController(ApplicationDbContext context)
+        public UserController(ApplicationDbContext context, ILogger<UserController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
+        /// <summary>
+        /// Update user name
+        /// </summary>
+        /// <param name="request">Update name request</param>
+        /// <returns>Update result</returns>
         [HttpPut("update-name")]
-        public IActionResult UpdateName([FromBody] UpdateUserNameDto dto)
+        public async Task<IActionResult> UpdateUserName([FromBody] UpdateUserNameRequest request)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Id == dto.UserId);
-            if (user == null)
+            try
             {
-                return NotFound("User not found");
+                _logger.LogInformation($"Update name request received for user {request.UserId}");
+
+                if (request.UserId <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Invalid user ID" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.UserName))
+                {
+                    return BadRequest(new { success = false, message = "Name cannot be empty" });
+                }
+
+                var user = await _context.Users.FindAsync(request.UserId);
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "User not found" });
+                }
+
+                // Update user name (you might need to split into FirstName/LastName)
+                var nameParts = request.UserName.Trim().Split(' ', 2);
+                user.UserName = request.UserName;
+                user.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"User name updated successfully for user {request.UserId}");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Name updated successfully!",
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    fullName = $"{user.FirstName} {user.LastName}".Trim()
+                });
             }
-
-            user.UserName = dto.UserName;
-            _context.SaveChanges();
-
-            return Ok(new { message = "Name updated successfully" });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user name");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
         }
+
+        /// <summary>
+        /// Update user email (now requires verification)
+        /// </summary>
+        /// <param name="request">Update email request</param>
+        /// <returns>Update result</returns>
         [HttpPut("update-email")]
-        public IActionResult UpdateEmail([FromBody] UpdateUserEmailDto dto)
+        [Obsolete("Use EmailVerification/request-change endpoint instead")]
+        public IActionResult UpdateUserEmail([FromBody] UpdateUserEmailRequest request)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Id == dto.UserId);
-            if (user == null)
+            return BadRequest(new
             {
-                return NotFound("User not found");
-            }
-
-            // Optional: check if email already exists
-            var existingUser = _context.Users.FirstOrDefault(u => u.Email == dto.Email);
-            if (existingUser != null && existingUser.Id != dto.UserId)
-            {
-                return Conflict("Email is already in use.");
-            }
-
-            user.Email = dto.Email;
-            _context.SaveChanges();
-
-            return Ok(new { message = "Email updated successfully" });
+                success = false,
+                message = "Email updates now require verification. Please use the /api/EmailVerification/request-change endpoint instead."
+            });
         }
 
+        /// <summary>
+        /// Get user profile
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>User profile</returns>
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetUser(int userId)
+        {
+            try
+            {
+                if (userId <= 0)
+                {
+                    return BadRequest(new { message = "Invalid user ID" });
+                }
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                return Ok(new
+                {
+                    id = user.Id,
+                    userName = user.UserName,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    fullName = $"{user.FirstName} {user.LastName}".Trim(),
+                    email = user.Email,
+                    currency = user.Currency,
+                    profilePictureUrl = user.ProfilePictureUrl,
+                    createdAt = user.CreatedAt,
+                    updatedAt = user.UpdatedAt
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    // Request DTOs
+    public class UpdateUserNameRequest
+    {
+        [Required]
+        public int UserId { get; set; }
+
+        [Required]
+        [StringLength(200, MinimumLength = 1)]
+        public string UserName { get; set; } = string.Empty;
+    }
+
+    public class UpdateUserEmailRequest
+    {
+        [Required]
+        public int UserId { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [StringLength(255)]
+        public string Email { get; set; } = string.Empty;
     }
 }

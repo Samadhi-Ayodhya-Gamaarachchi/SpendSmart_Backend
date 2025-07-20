@@ -186,7 +186,7 @@ namespace SpendSmart_Backend.Services
                 // Delete file from disk if it exists (backup file)
                 if (!string.IsNullOrEmpty(user.ProfilePicturePath))
                 {
-                    await DeleteExistingProfilePictureFileAsync(user.ProfilePicturePath);
+                    DeleteExistingProfilePictureFile(user.ProfilePicturePath);
                 }
 
                 // Update user in database
@@ -243,8 +243,8 @@ namespace SpendSmart_Backend.Services
                     .Select(u => new UserProfileDto
                     {
                         Id = u.Id,
-                        FirstName = u.FirstName,
-                        LastName = u.LastName,
+                        FirstName = u.FirstName ?? string.Empty,
+                        LastName = u.LastName ?? string.Empty,
                         Email = u.Email,
                         ProfilePictureUrl = u.ProfilePictureUrl,
                         CreatedAt = u.CreatedAt,
@@ -312,7 +312,7 @@ namespace SpendSmart_Backend.Services
             return $"user_{userId}_{timestamp}_{uniqueId}{extension}";
         }
 
-        private async Task DeleteExistingProfilePictureFileAsync(string relativePath)
+        private void DeleteExistingProfilePictureFile(string relativePath)
         {
             try
             {

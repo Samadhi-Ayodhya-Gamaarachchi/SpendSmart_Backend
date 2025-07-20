@@ -16,13 +16,16 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(
                 "http://localhost:5173",    // Your Vite frontend port
-                "https://localhost:5173 " ,   // HTTPS version of your frontend
-                "http://localhost:5174",     // Vite alternative
-                "http://localhost:5175"
+                "https://localhost:5173",   // HTTPS version of your frontend (removed extra space)
+                "http://localhost:5174",    // Vite alternative
+                "http://localhost:5175",
+                "http://localhost:3000",    // React default port
+                "https://localhost:3000"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials(); // If you need to send cookies/auth headers
+            .AllowCredentials() // If you need to send cookies/auth headers
+            .SetIsOriginAllowed(origin => true); // Allow any origin for development
         });
 });
 
@@ -33,6 +36,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
 
 builder.Services.AddScoped<IProfilePictureService, ProfilePictureService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -59,15 +64,11 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-/*if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SpendSmart API V1");
-        c.RoutePrefix = string.Empty; // Swagger at root
-    });
-}*/
+    app.UseSwaggerUI();
+}
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
