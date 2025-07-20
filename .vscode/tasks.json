@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Run SpendSmart_Backend API",
+			"command": "dotnet run --project SpendSmart_Backend/SpendSmart_Backend.csproj",
+			"group": "build",
+			"isBackground": true
+		}
+	]
+}
