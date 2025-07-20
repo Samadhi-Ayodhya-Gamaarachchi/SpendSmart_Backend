@@ -25,6 +25,8 @@ namespace SpendSmart_Backend.Data
                 .WithMany(u => u.ManagedUsers)
                 .HasForeignKey(ua => ua.ManagerId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+
         }
 
         public DbSet<User> Users { get; set; }
