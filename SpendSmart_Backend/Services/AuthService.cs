@@ -77,7 +77,7 @@ namespace SpendSmart_Backend.Services
             await _emailService.SendAdminVerificationEmailAsync(admin.Email, verificationToken, admin.UserName);
             return true;
         }
-  
+
 
         public async Task<string> LoginUser(LoginDto dto)
         {
@@ -104,12 +104,12 @@ namespace SpendSmart_Backend.Services
             if (admin == null)
                 throw new Exception("User not found");
 
-            
+
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, admin.Password);
 
             if (!isPasswordValid)
                 throw new Exception("Incorrect password");
-            
+
             var token = $"fake-jwt-token-for-{admin.UserName}";
             return token;
         }
@@ -164,7 +164,7 @@ namespace SpendSmart_Backend.Services
             var user = await _context.Users.FirstOrDefaultAsync(u => u.ResetToken == token && u.ResetTokenExpiry > DateTime.UtcNow);
             if (user == null) return false;
 
-            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword); 
+            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
             user.ResetToken = null;
             user.ResetTokenExpiry = null;
 
