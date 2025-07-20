@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpendSmart_Backend.Data;
 
@@ -11,9 +12,11 @@ using SpendSmart_Backend.Data;
 namespace SpendSmart_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250518113844_AddCategoryType")]
+    partial class AddCategoryType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -142,56 +145,6 @@ namespace SpendSmart_Backend.Migrations
                     b.ToTable("Goals");
                 });
 
-            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("AutoDeduction")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Frequency")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("Occurrences")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("RecurringTransactions");
-                });
-
             modelBuilder.Entity("SpendSmart_Backend.Models.Report", b =>
                 {
                     b.Property<int>("Id")
@@ -245,9 +198,6 @@ namespace SpendSmart_Backend.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("RecurringTransactionId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -258,8 +208,6 @@ namespace SpendSmart_Backend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
-
-                    b.HasIndex("RecurringTransactionId");
 
                     b.HasIndex("UserId");
 
@@ -351,25 +299,6 @@ namespace SpendSmart_Backend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
-                {
-                    b.HasOne("SpendSmart_Backend.Models.Category", "Category")
-                        .WithMany("RecurringTransactions")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.User", "User")
-                        .WithMany("RecurringTransactions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("SpendSmart_Backend.Models.Report", b =>
                 {
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
@@ -386,23 +315,16 @@ namespace SpendSmart_Backend.Migrations
                     b.HasOne("SpendSmart_Backend.Models.Category", "Category")
                         .WithMany("Transactions")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.RecurringTransaction", "RecurringTransaction")
-                        .WithMany("Transactions")
-                        .HasForeignKey("RecurringTransactionId")
-                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
                         .WithMany("Transactions")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Category");
-
-                    b.Navigation("RecurringTransaction");
 
                     b.Navigation("User");
                 });
@@ -439,13 +361,6 @@ namespace SpendSmart_Backend.Migrations
                 {
                     b.Navigation("Budgets");
 
-                    b.Navigation("RecurringTransactions");
-
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
-                {
                     b.Navigation("Transactions");
                 });
 
@@ -456,8 +371,6 @@ namespace SpendSmart_Backend.Migrations
                     b.Navigation("Goals");
 
                     b.Navigation("ManagedUsers");
-
-                    b.Navigation("RecurringTransactions");
 
                     b.Navigation("Reports");
 

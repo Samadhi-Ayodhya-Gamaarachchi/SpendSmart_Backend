@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
+using SpendSmart_Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,20 @@ builder.Services.AddSwaggerGen();
 // Add Entity Framework - Use SQL Server database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReact", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Your React dev server
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
+builder.Services.AddHostedService<RecurringTransactionBackgroundService>();
 
 // Add CORS policy for React frontend
 builder.Services.AddCors(options =>
@@ -36,6 +51,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -48,6 +64,8 @@ if (app.Environment.IsDevelopment())
 
 // Use CORS policy
 app.UseCors("AllowReactApp");
+
+app.UseCors("AllowReact");
 
 app.UseAuthorization();
 

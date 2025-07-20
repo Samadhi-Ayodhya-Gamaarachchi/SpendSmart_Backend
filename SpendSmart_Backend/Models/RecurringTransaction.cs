@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpendSmart_Backend.Models
 {
-    public class Transaction
+    public class RecurringTransaction
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -11,10 +11,13 @@ namespace SpendSmart_Backend.Models
         public string Type { get; set; }
         public int CategoryId { get; set; }
         public decimal Amount { get; set; }
-        public DateTime Date { get; set; }
-        public string? Description { get; set; }
+        public string Description { get; set; } // <-- Add this line
+        public string Frequency { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public int? Occurrences { get; set; }
+        public bool AutoDeduction { get; set; }
         public int UserId { get; set; }
-        public int? RecurringTransactionId { get; set; }
 
         [ForeignKey("CategoryId")]
         public Category Category { get; set; }
@@ -22,8 +25,6 @@ namespace SpendSmart_Backend.Models
         [ForeignKey("UserId")]
         public User User { get; set; }
 
-        [ForeignKey("RecurringTransactionId")]
-        public RecurringTransaction? RecurringTransaction { get; set; }
-
+        public ICollection<Transaction> Transactions { get; set; }
     }
 }
