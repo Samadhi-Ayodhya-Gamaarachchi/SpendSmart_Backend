@@ -13,7 +13,7 @@ namespace SpendSmart_Backend.Data
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<UserAdmin>()
                 .HasKey(ua => new { ua.UserId, ua.ManagerId });
-            // Add any additional configuration here
+            
             modelBuilder.Entity<UserAdmin>()
             .HasOne(ua => ua.User)
             .WithMany(u => u.UserAdmins)
@@ -25,6 +25,7 @@ namespace SpendSmart_Backend.Data
                 .WithMany(u => u.ManagedUsers)
                 .HasForeignKey(ua => ua.ManagerId)
                 .OnDelete(DeleteBehavior.Restrict);
+
 
             modelBuilder.Entity<Transaction>()
                .HasOne(t => t.RecurringTransaction)
@@ -43,6 +44,7 @@ namespace SpendSmart_Backend.Data
               .WithMany(c => c.Transactions)
               .HasForeignKey(t => t.CategoryId)
               .OnDelete(DeleteBehavior.Restrict);
+
         }
 
         public DbSet<User> Users { get; set; }
