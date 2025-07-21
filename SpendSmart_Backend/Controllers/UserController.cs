@@ -29,8 +29,6 @@ namespace SpendSmart_Backend.Controllers
                 {
                     Id = u.Id,
                     UserName = u.UserName,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
                     Email = u.Email,
                     Currency = u.Currency,
                     CreatedAt = u.CreatedAt,
@@ -240,8 +238,6 @@ namespace SpendSmart_Backend.Controllers
                     {
                         UserName = $"testuser{i}",
                         Password = "TestPassword123!", // Required field
-                        FirstName = $"Test",
-                        LastName = $"User{i}",
                         Email = $"testuser{i}@example.com",
                         Currency = "USD",
                         CreatedAt = DateTime.UtcNow.AddDays(-30 + i), // Created over the last month
@@ -321,8 +317,6 @@ namespace SpendSmart_Backend.Controllers
             {
                 Id = user.Id,
                 UserName = user.UserName,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
                 Email = user.Email,
                 Currency = user.Currency,
                 CreatedAt = user.CreatedAt,

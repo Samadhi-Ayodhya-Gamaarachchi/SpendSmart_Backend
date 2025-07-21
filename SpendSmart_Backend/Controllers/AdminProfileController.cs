@@ -569,8 +569,8 @@ namespace SpendSmart_Backend.Controllers
 
                 if (verification.IsVerified)
                 {
-                    Console.WriteLine("Verification token already used");
-                    return BadRequest(new { message = "Email has already been verified." });
+                    Console.WriteLine("Verification token already used - but treating as success");
+                    return Ok(new { message = "Email has already been verified successfully!" });
                 }
 
                 Console.WriteLine("Verification checks passed, proceeding with email update...");

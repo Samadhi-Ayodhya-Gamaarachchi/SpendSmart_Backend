@@ -4,8 +4,6 @@ namespace SpendSmart_Backend.Models.DTOs
     {
         public int Id { get; set; }
         public string UserName { get; set; } = string.Empty;
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
         public string Email { get; set; } = string.Empty;
         public string Currency { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
@@ -15,7 +13,6 @@ namespace SpendSmart_Backend.Models.DTOs
         public DateTime? UpdatedAt { get; set; }
 
         // Computed properties for display
-        public string FullName => $"{FirstName} {LastName}".Trim();
         public string LastLoginDisplay => LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? "Never";
         public string StatusBadgeColor => Status switch
         {
