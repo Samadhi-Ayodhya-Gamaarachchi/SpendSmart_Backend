@@ -6,7 +6,7 @@ using SpendSmart_Backend.Models;
 using SpendSmart_Backend.Services;
 
 namespace SpendSmart_Backend.Controllers
-{
+{   
     [ApiController]
     [Route("api/[controller]")]
     public class TransactionController : Controller
