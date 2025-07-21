@@ -17,6 +17,11 @@ namespace SpendSmart_Backend.Models
         public string? ProfilePictureFileName { get; set; } // Original file name
         public DateTime? ProfilePictureUploadedAt { get; set; } // Upload timestamp
 
+        // Email Verification Properties
+        public string? PendingEmail { get; set; } // Email waiting for verification
+        public EmailVerificationStatus EmailStatus { get; set; } = EmailVerificationStatus.Verified;
+
         public ICollection<UserAdmin> UserAdmins { get; set; } = new List<UserAdmin>();
+        public ICollection<EmailVerification> EmailVerifications { get; set; } = new List<EmailVerification>();
     }
 }

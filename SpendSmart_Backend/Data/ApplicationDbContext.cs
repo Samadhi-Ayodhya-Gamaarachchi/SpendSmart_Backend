@@ -35,6 +35,7 @@ namespace SpendSmart_Backend.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<Goal> Goals { get; set; }
         public DbSet<Report> Reports { get; set; }
+        public DbSet<EmailVerification> EmailVerifications { get; set; }
 
         
     }

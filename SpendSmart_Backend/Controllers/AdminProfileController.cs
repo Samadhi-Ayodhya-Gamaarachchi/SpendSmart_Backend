@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Models;
 using SpendSmart_Backend.Models.DTOs;
+using SpendSmart_Backend.Services;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -16,10 +17,12 @@ namespace SpendSmart_Backend.Controllers
     public class AdminProfileController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IEmailService _emailService;
 
-        public AdminProfileController(ApplicationDbContext context)
+        public AdminProfileController(ApplicationDbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         // GET: api/AdminProfile
@@ -66,10 +69,17 @@ namespace SpendSmart_Backend.Controllers
             return CreatedAtAction(nameof(GetAdmin), new { id = admin.Id }, admin);
         }
 
-        // PUT: api/AdminProfile/{id} - UPDATE admin profile (Optimized for performance!)
+        // PUT: api/AdminProfile/{id} - UPDATE admin profile with EMAIL VERIFICATION
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProfile(int id, AdminProfileUpdateDto adminProfileUpdateDto)
         {
+            // Debug logging
+            Console.WriteLine($"UpdateProfile called with ID: {id}");
+            Console.WriteLine($"Name: '{adminProfileUpdateDto.Name}'");
+            Console.WriteLine($"Email: '{adminProfileUpdateDto.Email}'");
+            Console.WriteLine($"Password provided: {!string.IsNullOrEmpty(adminProfileUpdateDto.Password)}");
+            Console.WriteLine($"CurrentPassword provided: {!string.IsNullOrEmpty(adminProfileUpdateDto.CurrentPassword)}");
+
             // Find the admin by id
             var admin = await _context.Admins.FindAsync(id);
             
@@ -78,19 +88,70 @@ namespace SpendSmart_Backend.Controllers
                 return NotFound($"Admin with ID {id} not found.");
             }
 
-            // PERFORMANCE OPTIMIZATION: Only validate email uniqueness if email is actually changing
+            // Check if email is actually changing
             bool isEmailChanging = !string.IsNullOrWhiteSpace(adminProfileUpdateDto.Email) && 
                                    adminProfileUpdateDto.Email != admin.Email;
 
             if (isEmailChanging)
             {
-                // Only check email uniqueness if email is actually changing
+                // Check email uniqueness
                 var existingAdmin = await _context.Admins
                     .FirstOrDefaultAsync(a => a.Email == adminProfileUpdateDto.Email && a.Id != id);
                 
                 if (existingAdmin != null)
                 {
                     return BadRequest(new { message = "Email address is already in use by another admin." });
+                }
+
+                // EMAIL VERIFICATION REQUIRED - Don't update email immediately
+                try
+                {
+                    Console.WriteLine("Starting email verification process...");
+                    
+                    // Generate verification token
+                    var verificationToken = GenerateVerificationToken();
+                    Console.WriteLine($"Generated verification token: {verificationToken.Substring(0, 10)}...");
+                    
+                    // Remove any existing verification for this admin
+                    var existingVerification = await _context.EmailVerifications
+                        .FirstOrDefaultAsync(ev => ev.AdminId == id);
+                    if (existingVerification != null)
+                    {
+                        Console.WriteLine("Removing existing verification...");
+                        _context.EmailVerifications.Remove(existingVerification);
+                    }
+                    
+                    // Create new email verification record
+                    var emailVerification = new EmailVerification
+                    {
+                        AdminId = id,
+                        NewEmail = adminProfileUpdateDto.Email ?? string.Empty,
+                        VerificationToken = verificationToken,
+                        CreatedAt = DateTime.UtcNow,
+                        ExpiresAt = DateTime.UtcNow.AddHours(24)
+                    };
+                    
+                    Console.WriteLine($"Created verification record for email: {emailVerification.NewEmail}");
+                    _context.EmailVerifications.Add(emailVerification);
+                    
+                    // Update admin's pending email (but not the actual email yet)
+                    admin.PendingEmail = adminProfileUpdateDto.Email;
+                    Console.WriteLine($"Set pending email to: {admin.PendingEmail}");
+                    
+                    // Save changes before sending email
+                    await _context.SaveChangesAsync();
+                    Console.WriteLine("Saved verification record to database");
+                    
+                    // Send verification email
+                    Console.WriteLine("Attempting to send verification email...");
+                    await _emailService.SendVerificationEmailAsync(emailVerification);
+                    
+                    Console.WriteLine($"Email verification sent successfully to: {adminProfileUpdateDto.Email}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to send email verification: {ex.Message}");
+                    return BadRequest(new { message = "Failed to send verification email. Please try again later." });
                 }
             }
 
@@ -109,28 +170,39 @@ namespace SpendSmart_Backend.Controllers
                 {
                     return BadRequest(new { message = "Current password is incorrect." });
                 }
+                
+                // Update password
+                if (!string.IsNullOrEmpty(adminProfileUpdateDto.Password))
+                {
+                    admin.Password = HashPassword(adminProfileUpdateDto.Password);
+                }
             }
 
-            // Map DTO properties to Admin entity (only update changed fields)
-            admin.Name = adminProfileUpdateDto.Name;
-            if (isEmailChanging)
+            // Always update name (no verification needed)
+            if (!string.IsNullOrEmpty(adminProfileUpdateDto.Name))
             {
-                admin.Email = adminProfileUpdateDto.Email;
+                admin.Name = adminProfileUpdateDto.Name;
             }
             
-            // Only update password if it's provided
-            if (isPasswordChanging)
-            {
-                // Hash the password before storing
-                admin.Password = HashPassword(adminProfileUpdateDto.Password);
-            }
-
             _context.Entry(admin).State = EntityState.Modified;
 
             try
             {
                 await _context.SaveChangesAsync();
-                return NoContent(); // 204 No Content is the standard response for successful PUT operations
+                
+                // Return different responses based on whether email verification is required
+                if (isEmailChanging)
+                {
+                    return Ok(new { 
+                        message = "Profile updated. Email verification sent to new email address.",
+                        emailVerificationRequired = true,
+                        pendingEmail = adminProfileUpdateDto.Email
+                    });
+                }
+                else
+                {
+                    return Ok(new { message = "Admin profile updated successfully!" });
+                }
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -347,6 +419,190 @@ namespace SpendSmart_Backend.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { error = "Failed to retrieve admin profile info", details = ex.Message });
+            }
+        }
+
+        // ==================== EMAIL VERIFICATION ENDPOINTS ====================
+
+        // Helper method to generate verification token
+        private string GenerateVerificationToken()
+        {
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                var bytes = new byte[32]; // 256 bits
+                rng.GetBytes(bytes);
+                return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").Replace("=", "");
+            }
+        }
+
+        // GET: api/AdminProfile/{id}/email-verification-status
+        [HttpGet("{id}/email-verification-status")]
+        public async Task<ActionResult> GetEmailVerificationStatus(int id)
+        {
+            try
+            {
+                var admin = await _context.Admins.FindAsync(id);
+                if (admin == null)
+                {
+                    return NotFound($"Admin with ID {id} not found.");
+                }
+
+                var pendingVerification = await _context.EmailVerifications
+                    .FirstOrDefaultAsync(ev => ev.AdminId == id && !ev.IsVerified && ev.ExpiresAt > DateTime.UtcNow);
+
+                return Ok(new
+                {
+                    hasPendingVerification = pendingVerification != null,
+                    pendingEmail = pendingVerification?.NewEmail ?? admin.PendingEmail
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking verification status: {ex.Message}");
+                return BadRequest(new { error = "Failed to check verification status", details = ex.Message });
+            }
+        }
+
+        // POST: api/AdminProfile/{id}/resend-verification
+        [HttpPost("{id}/resend-verification")]
+        public async Task<ActionResult> ResendEmailVerification(int id)
+        {
+            try
+            {
+                var admin = await _context.Admins.FindAsync(id);
+                if (admin == null)
+                {
+                    return NotFound($"Admin with ID {id} not found.");
+                }
+
+                var pendingVerification = await _context.EmailVerifications
+                    .FirstOrDefaultAsync(ev => ev.AdminId == id && !ev.IsVerified);
+
+                if (pendingVerification == null)
+                {
+                    return BadRequest(new { message = "No pending email verification found." });
+                }
+
+                // Check rate limiting (don't allow resend more than once every 60 seconds)
+                if ((DateTime.UtcNow - pendingVerification.CreatedAt).TotalSeconds < 60)
+                {
+                    return BadRequest(new { message = "Please wait before requesting another verification email." });
+                }
+
+                // Generate new token and update expiry
+                pendingVerification.VerificationToken = GenerateVerificationToken();
+                pendingVerification.CreatedAt = DateTime.UtcNow;
+                pendingVerification.ExpiresAt = DateTime.UtcNow.AddHours(24);
+
+                var verificationUrl = $"http://localhost:3000/verify-email?token={pendingVerification.VerificationToken}&adminId={id}";
+                await _emailService.SendVerificationEmailAsync(pendingVerification);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Verification email resent successfully!" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error resending verification: {ex.Message}");
+                return BadRequest(new { error = "Failed to resend verification email", details = ex.Message });
+            }
+        }
+
+        // POST: api/AdminProfile/{id}/cancel-verification
+        [HttpPost("{id}/cancel-verification")]
+        public async Task<ActionResult> CancelEmailVerification(int id)
+        {
+            try
+            {
+                var admin = await _context.Admins.FindAsync(id);
+                if (admin == null)
+                {
+                    return NotFound($"Admin with ID {id} not found.");
+                }
+
+                var pendingVerification = await _context.EmailVerifications
+                    .FirstOrDefaultAsync(ev => ev.AdminId == id && !ev.IsVerified);
+
+                if (pendingVerification != null)
+                {
+                    _context.EmailVerifications.Remove(pendingVerification);
+                }
+
+                // Clear pending email
+                admin.PendingEmail = null;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Email verification cancelled successfully!" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cancelling verification: {ex.Message}");
+                return BadRequest(new { error = "Failed to cancel verification", details = ex.Message });
+            }
+        }
+
+        // GET: api/AdminProfile/verify-email/{token}
+        [HttpGet("verify-email/{token}")]
+        public async Task<ActionResult> VerifyEmail(string token)
+        {
+            try
+            {
+                Console.WriteLine($"VerifyEmail called with token: {token.Substring(0, 10)}...");
+                
+                var verification = await _context.EmailVerifications
+                    .Include(ev => ev.Admin)
+                    .FirstOrDefaultAsync(ev => ev.VerificationToken == token);
+
+                if (verification == null)
+                {
+                    Console.WriteLine("Verification token not found in database");
+                    return BadRequest(new { message = "Invalid verification token." });
+                }
+
+                Console.WriteLine($"Found verification for admin ID: {verification.AdminId}, email: {verification.NewEmail}");
+
+                if (verification.ExpiresAt < DateTime.UtcNow)
+                {
+                    Console.WriteLine($"Verification token expired. Expires: {verification.ExpiresAt}, Now: {DateTime.UtcNow}");
+                    return BadRequest(new { message = "Verification token has expired." });
+                }
+
+                if (verification.IsVerified)
+                {
+                    Console.WriteLine("Verification token already used");
+                    return BadRequest(new { message = "Email has already been verified." });
+                }
+
+                Console.WriteLine("Verification checks passed, proceeding with email update...");
+
+                // Check if the new email is still available
+                var existingAdmin = await _context.Admins
+                    .FirstOrDefaultAsync(a => a.Email == verification.NewEmail && a.Id != verification.AdminId);
+                
+                if (existingAdmin != null)
+                {
+                    Console.WriteLine($"Email {verification.NewEmail} is already in use by admin ID: {existingAdmin.Id}");
+                    return BadRequest(new { message = "Email address is no longer available." });
+                }
+
+                Console.WriteLine("Email availability check passed, updating admin email...");
+
+                // Update admin email and mark verification as complete
+                verification.Admin.Email = verification.NewEmail;
+                verification.Admin.PendingEmail = null;
+                verification.IsVerified = true;
+                verification.VerifiedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"Email verification completed successfully! Updated email to: {verification.NewEmail}");
+
+                return Ok(new { message = "Email verified successfully!" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error verifying email: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return BadRequest(new { error = "Failed to verify email", details = ex.Message });
             }
         }
     }

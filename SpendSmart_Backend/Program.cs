@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
+using SpendSmart_Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,9 @@ builder.Services.AddCors(options =>
 // Add database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
+
+// Add email service
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
