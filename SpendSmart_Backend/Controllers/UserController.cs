@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Models;
+using SpendSmart_Backend.Services;
+using SpendSmart_Backend.DTOs;
 using System.ComponentModel.DataAnnotations;
 
 namespace SpendSmart_Backend.Controllers
@@ -12,11 +14,13 @@ namespace SpendSmart_Backend.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<UserController> _logger;
+        private readonly AuthService _authService;
 
-        public UserController(ApplicationDbContext context, ILogger<UserController> logger)
+        public UserController(ApplicationDbContext context, ILogger<UserController> logger, AuthService authService)
         {
             _context = context;
             _logger = logger;
+            _authService = authService;
         }
 
         /// <summary>
@@ -140,6 +144,38 @@ namespace SpendSmart_Backend.Controllers
             catch
             {
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Change user password
+        /// </summary>
+        /// <param name="request">Password change request</param>
+        /// <returns>Password change result</returns>
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+        {
+            try
+            {
+                _logger.LogInformation($"Password change request received for user {request.UserId}");
+
+                var result = await _authService.ChangeUserPasswordAsync(request);
+                
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+                
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing password");
+                return StatusCode(500, new ChangePasswordResponseDto 
+                { 
+                    Success = false, 
+                    Message = "Internal server error occurred while changing password" 
+                });
             }
         }
     }

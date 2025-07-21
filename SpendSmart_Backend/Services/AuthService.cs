@@ -216,7 +216,78 @@ namespace SpendSmart_Backend.Services
             return admin != null;
         }
 
+        public async Task<ChangePasswordResponseDto> ChangeUserPasswordAsync(ChangePasswordDto request)
+        {
+            try
+            {
+                Console.WriteLine($"🔐 DEBUG: Password change request for user {request.UserId}");
+                Console.WriteLine($"🔐 DEBUG: Current password provided: {!string.IsNullOrWhiteSpace(request.CurrentPassword)}");
+                Console.WriteLine($"🔐 DEBUG: New password provided: {!string.IsNullOrWhiteSpace(request.NewPassword)}");
+                Console.WriteLine($"🔐 DEBUG: Confirm password provided: {!string.IsNullOrWhiteSpace(request.ConfirmPassword)}");
+                
+                // Validate input
+                if (string.IsNullOrWhiteSpace(request.CurrentPassword) || 
+                    string.IsNullOrWhiteSpace(request.NewPassword) || 
+                    string.IsNullOrWhiteSpace(request.ConfirmPassword))
+                {
+                    Console.WriteLine("🔐 DEBUG: Validation failed - empty fields");
+                    return new ChangePasswordResponseDto { Success = false, Message = "All password fields are required." };
+                }
 
+                if (request.NewPassword != request.ConfirmPassword)
+                {
+                    Console.WriteLine("🔐 DEBUG: Password confirmation mismatch");
+                    return new ChangePasswordResponseDto { Success = false, Message = "New password and confirmation do not match." };
+                }
+
+                if (request.NewPassword.Length < 6)
+                {
+                    Console.WriteLine("🔐 DEBUG: Password too short");
+                    return new ChangePasswordResponseDto { Success = false, Message = "New password must be at least 6 characters long." };
+                }
+
+                // Get user from database
+                var user = await _context.Users.FindAsync(request.UserId);
+                if (user == null)
+                {
+                    Console.WriteLine($"🔐 DEBUG: User {request.UserId} not found in database");
+                    return new ChangePasswordResponseDto { Success = false, Message = "User not found." };
+                }
+
+                Console.WriteLine($"🔐 DEBUG: User found: {user.Email}");
+                Console.WriteLine($"🔐 DEBUG: User has password hash: {!string.IsNullOrEmpty(user.Password)}");
+
+                // Verify current password
+                if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.Password))
+                {
+                    Console.WriteLine("🔐 DEBUG: Current password verification failed");
+                    return new ChangePasswordResponseDto { Success = false, Message = "Current password is incorrect." };
+                }
+                {
+                    return new ChangePasswordResponseDto { Success = false, Message = "Current password is incorrect." };
+                }
+
+                // Check if new password is same as current
+                if (BCrypt.Net.BCrypt.Verify(request.NewPassword, user.Password))
+                {
+                    Console.WriteLine("🔐 DEBUG: New password same as current password");
+                    return new ChangePasswordResponseDto { Success = false, Message = "New password must be different from current password." };
+                }
+
+                // Hash and update password
+                user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine("🔐 DEBUG: Password changed successfully");
+                return new ChangePasswordResponseDto { Success = true, Message = "Password changed successfully." };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"🔐 DEBUG: Exception occurred: {ex.Message}");
+                // Log error in production
+                return new ChangePasswordResponseDto { Success = false, Message = "An error occurred while changing password." };
+            }
+        }
 
     }
 
