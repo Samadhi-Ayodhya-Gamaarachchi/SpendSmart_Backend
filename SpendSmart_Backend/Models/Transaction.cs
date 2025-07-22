@@ -25,6 +25,10 @@ namespace SpendSmart_Backend.Models
         [MaxLength(500)]
         public string? Description { get; set; }
 
+        public int UserId { get; set; }
+        public int? RecurringTransactionId { get; set; }
+
+
         [Required]
         [Column(TypeName = "date")]
         public DateTime TransactionDate { get; set; }
@@ -47,7 +51,10 @@ namespace SpendSmart_Backend.Models
         [ForeignKey("CategoryId")]
         public virtual Category Category { get; set; }
 
-        // Navigation properties
-        public virtual ICollection<TransactionBudgetImpact> TransactionBudgetImpacts { get; set; } = new List<TransactionBudgetImpact>();
+
+        [ForeignKey("RecurringTransactionId")]
+        public RecurringTransaction? RecurringTransaction { get; set; }
+
+
     }
 }
