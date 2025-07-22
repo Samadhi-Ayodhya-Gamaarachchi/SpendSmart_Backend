@@ -94,6 +94,12 @@ namespace SpendSmart_Backend.Controllers
                     return BadRequest(ModelState);
                 }
 
+                var user = await _context.Users.FindAsync(createGoalDto.UserId);
+                if (user == null)
+                {
+                    return BadRequest($"User with ID {createGoalDto.UserId} not found");
+                }
+
                 var goal = new Goal
                 {
                     Name = createGoalDto.Name,
@@ -102,7 +108,8 @@ namespace SpendSmart_Backend.Controllers
                     StartDate = createGoalDto.StartDate,
                     EndDate = createGoalDto.EndDate,
                     Description = createGoalDto.Description ?? string.Empty,
-                    UserId = createGoalDto.UserId
+                    UserId = createGoalDto.UserId,
+                    User = user
                 };
 
                 _context.Goals.Add(goal);

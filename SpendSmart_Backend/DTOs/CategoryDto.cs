@@ -1,3 +1,4 @@
+
 ﻿namespace SpendSmart_Backend.DTOs
 {
     public class CategoryDto
@@ -7,3 +8,4 @@
         public string Type { get; set; }
     }
 }
+

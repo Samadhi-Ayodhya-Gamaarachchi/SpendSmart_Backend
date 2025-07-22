@@ -1,3 +1,4 @@
+
 ﻿using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.DTOs;
@@ -115,3 +116,4 @@ namespace SpendSmart_Backend.Services
         }
     }
 }
+

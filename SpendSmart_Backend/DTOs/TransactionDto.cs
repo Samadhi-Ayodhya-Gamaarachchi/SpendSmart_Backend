@@ -1,3 +1,4 @@
+
 ﻿namespace SpendSmart_Backend.DTOs
 {
     public class TransactionDto
@@ -9,3 +10,4 @@
         public string? Description { get; set; }
     }
 }
+
