@@ -24,6 +24,77 @@ namespace SpendSmart_Backend.Controllers
         }
 
         /// <summary>
+        /// Debug endpoint to check user password status
+        /// </summary>
+        /// <param name="userId">User ID to check</param>
+        /// <returns>User password status information</returns>
+        [HttpGet("debug/password-status/{userId}")]
+        public async Task<IActionResult> GetPasswordStatus(int userId)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                return Ok(new
+                {
+                    userId = user.Id,
+                    email = user.Email,
+                    hasPassword = !string.IsNullOrEmpty(user.Password),
+                    passwordLength = user.Password?.Length ?? 0,
+                    passwordStartsWith = user.Password?.Substring(0, Math.Min(10, user.Password?.Length ?? 0)) ?? "",
+                    isValidBCryptHash = user.Password?.StartsWith("$2") ?? false
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Test endpoint to set a valid password for debugging
+        /// </summary>
+        /// <param name="request">Set password request</param>
+        /// <returns>Result</returns>
+        [HttpPost("debug/set-password")]
+        public async Task<IActionResult> SetTestPassword([FromBody] SetTestPasswordRequest request)
+        {
+            try
+            {
+                Console.WriteLine($"🔧 DEBUG: Setting test password for user {request.UserId}");
+
+                var user = await _context.Users.FindAsync(request.UserId);
+                if (user == null)
+                {
+                    Console.WriteLine($"🔧 DEBUG: User {request.UserId} not found");
+                    return NotFound(new { message = "User not found" });
+                }
+
+                Console.WriteLine($"🔧 DEBUG: Found user: {user.Email}");
+                Console.WriteLine($"🔧 DEBUG: Current password hash: {user.Password?.Substring(0, Math.Min(20, user.Password?.Length ?? 0))}...");
+
+                // Hash the new password properly
+                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                Console.WriteLine($"🔧 DEBUG: New password hash: {hashedPassword.Substring(0, Math.Min(20, hashedPassword.Length))}...");
+
+                user.Password = hashedPassword;
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine($"🔧 DEBUG: Password updated successfully for user {request.UserId}");
+                return Ok(new { message = "Password set successfully", userId = request.UserId });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"🔧 DEBUG: Error setting password: {ex.Message}");
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Update user name
         /// </summary>
         /// <param name="request">Update name request</param>
@@ -160,21 +231,21 @@ namespace SpendSmart_Backend.Controllers
                 _logger.LogInformation($"Password change request received for user {request.UserId}");
 
                 var result = await _authService.ChangeUserPasswordAsync(request);
-                
+
                 if (result.Success)
                 {
                     return Ok(result);
                 }
-                
+
                 return BadRequest(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error changing password");
-                return StatusCode(500, new ChangePasswordResponseDto 
-                { 
-                    Success = false, 
-                    Message = "Internal server error occurred while changing password" 
+                return StatusCode(500, new ChangePasswordResponseDto
+                {
+                    Success = false,
+                    Message = "Internal server error occurred while changing password"
                 });
             }
         }
@@ -200,5 +271,15 @@ namespace SpendSmart_Backend.Controllers
         [EmailAddress]
         [StringLength(255)]
         public string Email { get; set; } = string.Empty;
+    }
+
+    public class SetTestPasswordRequest
+    {
+        [Required]
+        public int UserId { get; set; }
+
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
+        public string Password { get; set; } = string.Empty;
     }
 }

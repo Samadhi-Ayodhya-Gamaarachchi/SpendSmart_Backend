@@ -28,6 +28,42 @@ namespace SpendSmart_Backend.Controllers
             return Ok(new { message = "EmailVerificationController is working!" });
         }
 
+        /// <summary>
+        /// Get email verification status for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>Email verification status</returns>
+        [HttpGet("status/{userId}")]
+        public async Task<IActionResult> GetEmailVerificationStatus(int userId)
+        {
+            try
+            {
+                if (userId <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Invalid user ID" });
+                }
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "User not found" });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    userId = userId,
+                    isEmailVerified = user.IsEmailVerified,
+                    email = user.Email,
+                    hasPendingEmailChange = false // Default to false for now
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { success = false, message = "An error occurred while checking email status" });
+            }
+        }
+
         [HttpPost("request-change")]
         public async Task<IActionResult> RequestEmailChange([FromBody] EmailChangeRequestDto request)
         {

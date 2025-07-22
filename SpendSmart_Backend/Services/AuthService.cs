@@ -224,10 +224,10 @@ namespace SpendSmart_Backend.Services
                 Console.WriteLine($"🔐 DEBUG: Current password provided: {!string.IsNullOrWhiteSpace(request.CurrentPassword)}");
                 Console.WriteLine($"🔐 DEBUG: New password provided: {!string.IsNullOrWhiteSpace(request.NewPassword)}");
                 Console.WriteLine($"🔐 DEBUG: Confirm password provided: {!string.IsNullOrWhiteSpace(request.ConfirmPassword)}");
-                
+
                 // Validate input
-                if (string.IsNullOrWhiteSpace(request.CurrentPassword) || 
-                    string.IsNullOrWhiteSpace(request.NewPassword) || 
+                if (string.IsNullOrWhiteSpace(request.CurrentPassword) ||
+                    string.IsNullOrWhiteSpace(request.NewPassword) ||
                     string.IsNullOrWhiteSpace(request.ConfirmPassword))
                 {
                     Console.WriteLine("🔐 DEBUG: Validation failed - empty fields");
@@ -256,22 +256,46 @@ namespace SpendSmart_Backend.Services
 
                 Console.WriteLine($"🔐 DEBUG: User found: {user.Email}");
                 Console.WriteLine($"🔐 DEBUG: User has password hash: {!string.IsNullOrEmpty(user.Password)}");
+                Console.WriteLine($"🔐 DEBUG: Password hash length: {user.Password?.Length ?? 0}");
 
-                // Verify current password
-                if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.Password))
+                // Verify current password with proper error handling
+                bool isCurrentPasswordValid = false;
+                try
                 {
-                    Console.WriteLine("🔐 DEBUG: Current password verification failed");
+                    isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.Password);
+                    Console.WriteLine($"🔐 DEBUG: BCrypt verification result: {isCurrentPasswordValid}");
+                }
+                catch (Exception bcryptEx)
+                {
+                    Console.WriteLine($"🔐 DEBUG: BCrypt verification failed with exception: {bcryptEx.Message}");
+                    Console.WriteLine($"🔐 DEBUG: Exception type: {bcryptEx.GetType().Name}");
+                    // If the stored password hash is corrupted, we need to handle it gracefully
+                    return new ChangePasswordResponseDto
+                    {
+                        Success = false,
+                        Message = "Your password data is corrupted. Please use the forgot password feature to reset your password."
+                    };
+                }
+
+                if (!isCurrentPasswordValid)
+                {
+                    Console.WriteLine("🔐 DEBUG: Current password verification failed - password incorrect");
                     return new ChangePasswordResponseDto { Success = false, Message = "Current password is incorrect." };
                 }
-                {
-                    return new ChangePasswordResponseDto { Success = false, Message = "Current password is incorrect." };
-                }
 
-                // Check if new password is same as current
-                if (BCrypt.Net.BCrypt.Verify(request.NewPassword, user.Password))
+                // Check if new password is same as current (with error handling)
+                try
                 {
-                    Console.WriteLine("🔐 DEBUG: New password same as current password");
-                    return new ChangePasswordResponseDto { Success = false, Message = "New password must be different from current password." };
+                    if (BCrypt.Net.BCrypt.Verify(request.NewPassword, user.Password))
+                    {
+                        Console.WriteLine("🔐 DEBUG: New password same as current password");
+                        return new ChangePasswordResponseDto { Success = false, Message = "New password must be different from current password." };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"🔐 DEBUG: Error comparing new password with current: {ex.Message}");
+                    // Continue anyway since we already verified the current password above
                 }
 
                 // Hash and update password
@@ -284,8 +308,22 @@ namespace SpendSmart_Backend.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"🔐 DEBUG: Exception occurred: {ex.Message}");
-                // Log error in production
-                return new ChangePasswordResponseDto { Success = false, Message = "An error occurred while changing password." };
+                Console.WriteLine($"🔐 DEBUG: Exception type: {ex.GetType().Name}");
+                Console.WriteLine($"🔐 DEBUG: Stack trace: {ex.StackTrace}");
+
+                // Return more specific error message based on exception type
+                if (ex is DbUpdateException)
+                {
+                    return new ChangePasswordResponseDto { Success = false, Message = "Database error occurred while updating password." };
+                }
+                else if (ex is ArgumentException)
+                {
+                    return new ChangePasswordResponseDto { Success = false, Message = "Invalid password format." };
+                }
+                else
+                {
+                    return new ChangePasswordResponseDto { Success = false, Message = $"An error occurred while changing password: {ex.Message}" };
+                }
             }
         }
 
