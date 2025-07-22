@@ -1,14 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
-namespace SpendSmart_Backend.Models
+namespace SpendSmart_Backend.DTOs
 {
-    public class Report
+    public class StoreReportDto
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
-
         [Required]
         [MaxLength(100)]
         public string ReportName { get; set; } = string.Empty;
@@ -16,9 +11,6 @@ namespace SpendSmart_Backend.Models
         [Required]
         [MaxLength(50)]
         public string Format { get; set; } = string.Empty;
-
-        [Required]
-        public DateTime DateGenerated { get; set; }
 
         [Required]
         public DateTime StartDate { get; set; }
@@ -34,8 +26,5 @@ namespace SpendSmart_Backend.Models
 
         [Required]
         public int UserId { get; set; }
-
-        [ForeignKey("UserId")]
-        public User? User { get; set; }
     }
 }

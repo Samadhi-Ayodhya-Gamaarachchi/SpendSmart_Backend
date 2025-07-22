@@ -129,7 +129,7 @@ namespace SpendSmart_Backend.Controllers
                     MonthlyData = monthlyData,
                     Goals = goalStatuses,
                     Transactions = formattedTransactions.Cast<object>().ToList(),
-                    SavingsGrowthOverTime = savingsGrowthOverTime ,// ADD THIS LINE
+                    SavingsGrowthOverTime = savingsGrowthOverTime,// ADD THIS LINE
                 };
 
                 _logger.LogInformation($"Report generated successfully with {formattedTransactions.Count} transactions and {savingsGrowthOverTime.Count} savings entries");
@@ -236,6 +236,108 @@ namespace SpendSmart_Backend.Controllers
                 timestamp = DateTime.Now,
                 environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown"
             });
+        }
+
+        // GET: api/Reports/stored/{userId}
+        [HttpGet("stored/{userId}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetStoredReports(int userId)
+        {
+            try
+            {
+                _logger.LogInformation($"Retrieving stored reports for user {userId}");
+
+                var reports = await _context.Reports
+                    .Where(r => r.UserId == userId)
+                    .OrderByDescending(r => r.DateGenerated)
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.ReportName,
+                        r.Format,
+                        r.DateGenerated,
+                        r.StartDate,
+                        r.EndDate,
+                        r.FirebaseUrl,
+                        r.Description,
+                        DateRange = $"{r.StartDate:yyyy-MM-dd} to {r.EndDate:yyyy-MM-dd}"
+                    })
+                    .ToListAsync();
+
+                _logger.LogInformation($"Found {reports.Count} stored reports for user {userId}");
+                return Ok(reports);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving stored reports for user {userId}");
+                return StatusCode(500, new { message = "Error retrieving stored reports", error = ex.Message });
+            }
+        }
+
+        // POST: api/Reports/store
+        [HttpPost("store")]
+        public async Task<ActionResult<object>> StoreReport([FromBody] StoreReportDto reportDto)
+        {
+            try
+            {
+                _logger.LogInformation($"Storing report for user {reportDto.UserId}");
+
+                var report = new Models.Report
+                {
+                    ReportName = reportDto.ReportName,
+                    Format = reportDto.Format,
+                    DateGenerated = DateTime.UtcNow,
+                    StartDate = reportDto.StartDate,
+                    EndDate = reportDto.EndDate,
+                    FirebaseUrl = reportDto.FirebaseUrl,
+                    Description = reportDto.Description,
+                    UserId = reportDto.UserId
+                };
+
+                _context.Reports.Add(report);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Report stored successfully with ID {report.Id}");
+
+                return Ok(new
+                {
+                    id = report.Id,
+                    message = "Report stored successfully",
+                    reportName = report.ReportName,
+                    dateGenerated = report.DateGenerated
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error storing report for user {reportDto.UserId}");
+                return StatusCode(500, new { message = "Error storing report", error = ex.Message });
+            }
+        }
+
+        // DELETE: api/Reports/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteStoredReport(int id)
+        {
+            try
+            {
+                _logger.LogInformation($"Deleting report with ID {id}");
+
+                var report = await _context.Reports.FindAsync(id);
+                if (report == null)
+                {
+                    return NotFound(new { message = "Report not found" });
+                }
+
+                _context.Reports.Remove(report);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Report with ID {id} deleted successfully");
+                return Ok(new { message = "Report deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting report with ID {id}");
+                return StatusCode(500, new { message = "Error deleting report", error = ex.Message });
+            }
         }
 
         // Add sample data endpoint for testing
