@@ -51,20 +51,7 @@ namespace SpendSmart_Backend.Data
             });
 
             // Configure SavingRecord entity
-            modelBuilder.Entity<SavingRecord>(entity =>
-            {
-                entity.Property(e => e.Amount).HasPrecision(18, 2);
-
-                entity.HasOne(sr => sr.Goal)
-                    .WithMany(g => g.SavingRecords)
-                    .HasForeignKey(sr => sr.GoalId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(sr => sr.User)
-                    .WithMany(u => u.SavingRecords)
-                    .HasForeignKey(sr => sr.UserId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
+            
 
 
 

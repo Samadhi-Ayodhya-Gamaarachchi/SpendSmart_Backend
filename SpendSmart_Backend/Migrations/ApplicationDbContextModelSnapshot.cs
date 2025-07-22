@@ -99,11 +99,9 @@ namespace SpendSmart_Backend.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<decimal>("TotalBudgetAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalSpentAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -116,18 +114,9 @@ namespace SpendSmart_Backend.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("StartDate", "EndDate")
-                        .HasDatabaseName("IX_Budget_DateRange");
+                    b.HasIndex("UserId");
 
-                    b.HasIndex("UserId", "Status")
-                        .HasDatabaseName("IX_Budget_UserId_Status");
-
-                    b.ToTable("Budgets", t =>
-                        {
-                            t.HasCheckConstraint("CK_Budget_BudgetType", "[BudgetType] IN ('Monthly', 'Annually')");
-
-                            t.HasCheckConstraint("CK_Budget_Status", "[Status] IN ('Active', 'Completed', 'Cancelled')");
-                        });
+                    b.ToTable("Budgets");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.BudgetCategory", b =>
@@ -139,7 +128,6 @@ namespace SpendSmart_Backend.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BudgetCategoryId"));
 
                     b.Property<decimal>("AllocatedAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("BudgetId")
@@ -152,7 +140,6 @@ namespace SpendSmart_Backend.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("SpentAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -160,15 +147,11 @@ namespace SpendSmart_Backend.Migrations
 
                     b.HasKey("BudgetCategoryId");
 
-                    b.HasIndex("BudgetId")
-                        .HasDatabaseName("IX_BudgetCategory_BudgetId");
+                    b.HasIndex("BudgetId");
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("BudgetId", "CategoryId")
-                        .IsUnique();
-
-                    b.ToTable("BudgetCategories");
+                    b.ToTable("BudgetCategory");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Category", b =>
@@ -179,12 +162,7 @@ namespace SpendSmart_Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CategoryName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Type")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -194,10 +172,7 @@ namespace SpendSmart_Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", t =>
-                        {
-                            t.HasCheckConstraint("CK_Category_Type", "[Type] IN ('Income', 'Expense')");
-                        });
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Goal", b =>
@@ -242,7 +217,6 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
                 {
-
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -279,13 +253,10 @@ namespace SpendSmart_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-
                     b.HasKey("Id");
-
 
                     b.HasIndex("CategoryId");
 
@@ -336,7 +307,6 @@ namespace SpendSmart_Backend.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("Date")
@@ -365,56 +335,43 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Transaction", b =>
                 {
-                    b.Property<int>("TransactionId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("RecurringTransactionId")
                         .HasColumnType("int");
 
                     b.Property<string>("Type")
-
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.HasKey("TransactionId");
+                    b.HasKey("Id");
 
-                    b.HasIndex("CategoryId", "TransactionType")
-                        .HasDatabaseName("IX_Transaction_Category_Type");
+                    b.HasIndex("CategoryId");
 
-                    b.HasIndex("UserId", "TransactionDate")
-                        .HasDatabaseName("IX_Transaction_UserId_Date");
+                    b.HasIndex("RecurringTransactionId");
 
-                    b.ToTable("Transactions", t =>
-                        {
-                            t.HasCheckConstraint("CK_Transaction_RecurringFrequency", "[RecurringFrequency] IN ('Daily', 'Weekly', 'Monthly', 'Annually') OR [RecurringFrequency] IS NULL");
+                    b.HasIndex("UserId");
 
-                            t.HasCheckConstraint("CK_Transaction_TransactionType", "[TransactionType] IN ('Income', 'Expense')");
-                        });
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.TransactionBudgetImpact", b =>
@@ -435,7 +392,6 @@ namespace SpendSmart_Backend.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("ImpactAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("TransactionId")
@@ -443,17 +399,13 @@ namespace SpendSmart_Backend.Migrations
 
                     b.HasKey("ImpactId");
 
-                    b.HasIndex("BudgetId")
-                        .HasDatabaseName("IX_TransactionBudgetImpact_BudgetId");
+                    b.HasIndex("BudgetId");
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("TransactionId");
 
-                    b.HasIndex("RecurringTransactionId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("TransactionBudgetImpacts");
+                    b.ToTable("TransactionBudgetImpact");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.User", b =>
@@ -547,9 +499,9 @@ namespace SpendSmart_Backend.Migrations
                         .IsRequired();
 
                     b.HasOne("SpendSmart_Backend.Models.Category", "Category")
-                        .WithMany("BudgetCategories")
+                        .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Budget");
@@ -564,25 +516,6 @@ namespace SpendSmart_Backend.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
-                {
-                    b.HasOne("SpendSmart_Backend.Models.Category", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
 
                     b.Navigation("User");
                 });
@@ -611,7 +544,7 @@ namespace SpendSmart_Backend.Migrations
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
                         .WithMany("Reports")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -628,7 +561,7 @@ namespace SpendSmart_Backend.Migrations
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
                         .WithMany("SavingRecords")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Goal");
@@ -667,17 +600,17 @@ namespace SpendSmart_Backend.Migrations
                     b.HasOne("SpendSmart_Backend.Models.Budget", "Budget")
                         .WithMany("TransactionBudgetImpacts")
                         .HasForeignKey("BudgetId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("SpendSmart_Backend.Models.Category", "Category")
-                        .WithMany("TransactionBudgetImpacts")
+                        .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("SpendSmart_Backend.Models.Transaction", "Transaction")
-                        .WithMany("TransactionBudgetImpacts")
+                        .WithMany()
                         .HasForeignKey("TransactionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -726,17 +659,9 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Category", b =>
                 {
-                    b.Navigation("BudgetCategories");
-
                     b.Navigation("Budgets");
 
                     b.Navigation("RecurringTransactions");
-
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
-                {
 
                     b.Navigation("Transactions");
                 });
@@ -746,9 +671,9 @@ namespace SpendSmart_Backend.Migrations
                     b.Navigation("SavingRecords");
                 });
 
-            modelBuilder.Entity("SpendSmart_Backend.Models.Transaction", b =>
+            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
                 {
-                    b.Navigation("TransactionBudgetImpacts");
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.User", b =>

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SpendSmart_Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreateDatabase : Migration
+    public partial class newMigrationAdded : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,9 +17,13 @@ namespace SpendSmart_Backend.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ResetToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ResetTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsEmailVerified = table.Column<bool>(type: "bit", nullable: false),
+                    EmailVerificationToken = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -32,13 +36,12 @@ namespace SpendSmart_Backend.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    CategoryName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Categories", x => x.Id);
-                    table.CheckConstraint("CK_Category_Type", "[Type] IN ('Income', 'Expense')");
                 });
 
             migrationBuilder.CreateTable(
@@ -49,10 +52,12 @@ namespace SpendSmart_Backend.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserName = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Email = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Currency = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Currency = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ResetToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ResetTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsEmailVerified = table.Column<bool>(type: "bit", nullable: false),
+                    EmailVerificationToken = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -70,8 +75,8 @@ namespace SpendSmart_Backend.Migrations
                     BudgetType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     StartDate = table.Column<DateTime>(type: "date", nullable: false),
                     EndDate = table.Column<DateTime>(type: "date", nullable: false),
-                    TotalBudgetAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    TotalSpentAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    TotalBudgetAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalSpentAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -81,8 +86,6 @@ namespace SpendSmart_Backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Budgets", x => x.BudgetId);
-                    table.CheckConstraint("CK_Budget_BudgetType", "[BudgetType] IN ('Monthly', 'Annually')");
-                    table.CheckConstraint("CK_Budget_Status", "[Status] IN ('Active', 'Completed', 'Cancelled')");
                     table.ForeignKey(
                         name: "FK_Budgets_Categories_CategoryId",
                         column: x => x.CategoryId,
@@ -125,29 +128,28 @@ namespace SpendSmart_Backend.Migrations
                 name: "RecurringTransactions",
                 columns: table => new
                 {
-                    RecurringId = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: false),
-                    TransactionType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Frequency = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    StartDate = table.Column<DateTime>(type: "date", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "date", nullable: true),
-                    NextExecutionDate = table.Column<DateTime>(type: "date", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Frequency = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Occurrences = table.Column<int>(type: "int", nullable: true),
+                    AutoDeduction = table.Column<bool>(type: "bit", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RecurringTransactions", x => x.RecurringId);
+                    table.PrimaryKey("PK_RecurringTransactions", x => x.Id);
                     table.ForeignKey(
                         name: "FK_RecurringTransactions_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_RecurringTransactions_Users_UserId",
                         column: x => x.UserId,
@@ -173,43 +175,6 @@ namespace SpendSmart_Backend.Migrations
                     table.PrimaryKey("PK_Reports", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Reports_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Transactions",
-                columns: table => new
-                {
-                    TransactionId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    CategoryId = table.Column<int>(type: "int", nullable: false),
-                    TransactionType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    TransactionDate = table.Column<DateTime>(type: "date", nullable: false),
-                    IsRecurring = table.Column<bool>(type: "bit", nullable: false),
-                    RecurringFrequency = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    RecurringEndDate = table.Column<DateTime>(type: "date", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Transactions", x => x.TransactionId);
-                    table.CheckConstraint("CK_Transaction_RecurringFrequency", "[RecurringFrequency] IN ('Daily', 'Weekly', 'Monthly', 'Annually') OR [RecurringFrequency] IS NULL");
-                    table.CheckConstraint("CK_Transaction_TransactionType", "[TransactionType] IN ('Income', 'Expense')");
-                    table.ForeignKey(
-                        name: "FK_Transactions_Categories_CategoryId",
-                        column: x => x.CategoryId,
-                        principalTable: "Categories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Transactions_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -247,33 +212,33 @@ namespace SpendSmart_Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "BudgetCategories",
+                name: "BudgetCategory",
                 columns: table => new
                 {
                     BudgetCategoryId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     BudgetId = table.Column<int>(type: "int", nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: false),
-                    AllocatedAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    SpentAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    AllocatedAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    SpentAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_BudgetCategories", x => x.BudgetCategoryId);
+                    table.PrimaryKey("PK_BudgetCategory", x => x.BudgetCategoryId);
                     table.ForeignKey(
-                        name: "FK_BudgetCategories_Budgets_BudgetId",
+                        name: "FK_BudgetCategory_Budgets_BudgetId",
                         column: x => x.BudgetId,
                         principalTable: "Budgets",
                         principalColumn: "BudgetId",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_BudgetCategories_Categories_CategoryId",
+                        name: "FK_BudgetCategory_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -282,7 +247,7 @@ namespace SpendSmart_Backend.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Date = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Time = table.Column<TimeSpan>(type: "time", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -303,11 +268,48 @@ namespace SpendSmart_Backend.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Transactions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CategoryId = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    RecurringTransactionId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Transactions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Transactions_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Transactions_RecurringTransactions_RecurringTransactionId",
+                        column: x => x.RecurringTransactionId,
+                        principalTable: "RecurringTransactions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Transactions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TransactionBudgetImpacts",
+                name: "TransactionBudgetImpact",
                 columns: table => new
                 {
                     ImpactId = table.Column<int>(type: "int", nullable: false)
@@ -315,62 +317,51 @@ namespace SpendSmart_Backend.Migrations
                     TransactionId = table.Column<int>(type: "int", nullable: false),
                     BudgetId = table.Column<int>(type: "int", nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: false),
-                    ImpactAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    ImpactAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TransactionBudgetImpacts", x => x.ImpactId);
+                    table.PrimaryKey("PK_TransactionBudgetImpact", x => x.ImpactId);
                     table.ForeignKey(
-                        name: "FK_TransactionBudgetImpacts_Budgets_BudgetId",
+                        name: "FK_TransactionBudgetImpact_Budgets_BudgetId",
                         column: x => x.BudgetId,
                         principalTable: "Budgets",
                         principalColumn: "BudgetId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_TransactionBudgetImpacts_Categories_CategoryId",
+                        name: "FK_TransactionBudgetImpact_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_TransactionBudgetImpacts_Transactions_TransactionId",
+                        name: "FK_TransactionBudgetImpact_Transactions_TransactionId",
                         column: x => x.TransactionId,
                         principalTable: "Transactions",
-                        principalColumn: "TransactionId",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_BudgetCategories_BudgetId_CategoryId",
-                table: "BudgetCategories",
-                columns: new[] { "BudgetId", "CategoryId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_BudgetCategories_CategoryId",
-                table: "BudgetCategories",
-                column: "CategoryId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_BudgetCategory_BudgetId",
-                table: "BudgetCategories",
+                table: "BudgetCategory",
                 column: "BudgetId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Budget_DateRange",
-                table: "Budgets",
-                columns: new[] { "StartDate", "EndDate" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Budget_UserId_Status",
-                table: "Budgets",
-                columns: new[] { "UserId", "Status" });
+                name: "IX_BudgetCategory_CategoryId",
+                table: "BudgetCategory",
+                column: "CategoryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Budgets_CategoryId",
                 table: "Budgets",
                 column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Budgets_UserId",
+                table: "Budgets",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Goals_UserId",
@@ -404,28 +395,33 @@ namespace SpendSmart_Backend.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_TransactionBudgetImpact_BudgetId",
-                table: "TransactionBudgetImpacts",
+                table: "TransactionBudgetImpact",
                 column: "BudgetId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TransactionBudgetImpact_TransactionId",
-                table: "TransactionBudgetImpacts",
-                column: "TransactionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TransactionBudgetImpacts_CategoryId",
-                table: "TransactionBudgetImpacts",
+                name: "IX_TransactionBudgetImpact_CategoryId",
+                table: "TransactionBudgetImpact",
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Transaction_Category_Type",
-                table: "Transactions",
-                columns: new[] { "CategoryId", "TransactionType" });
+                name: "IX_TransactionBudgetImpact_TransactionId",
+                table: "TransactionBudgetImpact",
+                column: "TransactionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Transaction_UserId_Date",
+                name: "IX_Transactions_CategoryId",
                 table: "Transactions",
-                columns: new[] { "UserId", "TransactionDate" });
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transactions_RecurringTransactionId",
+                table: "Transactions",
+                column: "RecurringTransactionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transactions_UserId",
+                table: "Transactions",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserAdmins_AdminId",
@@ -454,10 +450,7 @@ namespace SpendSmart_Backend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "BudgetCategories");
-
-            migrationBuilder.DropTable(
-                name: "RecurringTransactions");
+                name: "BudgetCategory");
 
             migrationBuilder.DropTable(
                 name: "Reports");
@@ -466,7 +459,7 @@ namespace SpendSmart_Backend.Migrations
                 name: "SavingRecords");
 
             migrationBuilder.DropTable(
-                name: "TransactionBudgetImpacts");
+                name: "TransactionBudgetImpact");
 
             migrationBuilder.DropTable(
                 name: "UserAdmins");
@@ -482,6 +475,9 @@ namespace SpendSmart_Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "Admins");
+
+            migrationBuilder.DropTable(
+                name: "RecurringTransactions");
 
             migrationBuilder.DropTable(
                 name: "Categories");
