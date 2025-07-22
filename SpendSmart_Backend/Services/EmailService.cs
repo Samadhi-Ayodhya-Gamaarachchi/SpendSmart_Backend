@@ -8,11 +8,13 @@ namespace SpendSmart_Backend.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<EmailService> _logger;
+        private readonly INotificationService _notificationService;
 
-        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
+        public EmailService(IConfiguration configuration, ILogger<EmailService> logger, INotificationService notificationService)
         {
             _configuration = configuration;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         public async Task SendVerificationEmailAsync(EmailVerification verification)
@@ -48,6 +50,13 @@ namespace SpendSmart_Backend.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Failed to send verification email to {verification.NewEmail}");
+                
+                // 🔔 CREATE NOTIFICATION FOR EMAIL SERVICE FAILURE
+                await _notificationService.CreateEmailServiceFailureNotificationAsync(
+                    verification.NewEmail, 
+                    ex.Message
+                );
+                
                 throw new InvalidOperationException("Failed to send verification email", ex);
             }
         }
@@ -83,6 +92,13 @@ namespace SpendSmart_Backend.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Failed to send email change notification to {oldEmail}");
+                
+                // 🔔 CREATE NOTIFICATION FOR EMAIL SERVICE FAILURE
+                await _notificationService.CreateEmailServiceFailureNotificationAsync(
+                    oldEmail, 
+                    $"Email change notification failed: {ex.Message}"
+                );
+                
                 // Don't throw here - this is just a notification
             }
         }

@@ -25,6 +25,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Add email service
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Add notification service
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// Add background services
+builder.Services.AddHostedService<SpendSmart_Backend.BackgroundServices.InactiveUserCheckService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline - order matters!

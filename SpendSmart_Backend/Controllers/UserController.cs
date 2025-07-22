@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Models;
 using SpendSmart_Backend.Models.DTOs;
+using SpendSmart_Backend.Services;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
 using System.IO;
@@ -14,16 +15,20 @@ namespace SpendSmart_Backend.Controllers
     public class UserController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly INotificationService _notificationService;
 
-        public UserController(ApplicationDbContext context)
+        public UserController(ApplicationDbContext context, INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         // GET: api/User - Get all users with privacy-focused response (Admin only)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetAllUsers()
         {
+            var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+            
             var users = await _context.Users
                 .Select(u => new UserResponseDto
                 {
@@ -33,8 +38,10 @@ namespace SpendSmart_Backend.Controllers
                     Currency = u.Currency,
                     CreatedAt = u.CreatedAt,
                     LastLoginAt = u.LastLoginAt,
-                    IsActive = u.IsActive,
-                    Status = u.Status,
+                    // Calculate IsActive based on 30-day timestamp rule (same as notification system)
+                    IsActive = u.LastLoginAt != null && u.LastLoginAt >= thirtyDaysAgo,
+                    // Calculate Status based on 30-day timestamp rule only
+                    Status = (u.LastLoginAt == null || u.LastLoginAt < thirtyDaysAgo) ? "Inactive" : "Active",
                     UpdatedAt = u.UpdatedAt
                 })
                 .OrderByDescending(u => u.CreatedAt)
@@ -47,9 +54,15 @@ namespace SpendSmart_Backend.Controllers
         [HttpGet("statistics")]
         public async Task<ActionResult<object>> GetUserStatistics()
         {
+            var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+            
             var totalUsers = await _context.Users.CountAsync();
-            var activeUsers = await _context.Users.CountAsync(u => u.IsActive && u.Status == "Active");
-            var inactiveUsers = await _context.Users.CountAsync(u => !u.IsActive || u.Status != "Active");
+            // Use 30-day timestamp rule for active users (same as notification system)
+            var activeUsers = await _context.Users.CountAsync(u => 
+                u.LastLoginAt != null && u.LastLoginAt >= thirtyDaysAgo);
+            // Use 30-day timestamp rule for inactive users (same as notification system)  
+            var inactiveUsers = await _context.Users.CountAsync(u => 
+                u.LastLoginAt == null || u.LastLoginAt < thirtyDaysAgo);
             var newUsersThisMonth = await _context.Users
                 .CountAsync(u => u.CreatedAt >= DateTime.UtcNow.AddDays(-30));
 
@@ -78,15 +91,17 @@ namespace SpendSmart_Backend.Controllers
         {
             try
             {
-                // Get data for all 12 months
+                // Get REAL data for 2025 calendar year (Jan to Dec)
                 var activityData = new List<object>();
-                var months = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
                 
-                for (int i = 11; i >= 0; i--)
+                // Generate all 12 months of 2025
+                for (int month = 1; month <= 12; month++)
                 {
-                    var monthStart = DateTime.UtcNow.AddMonths(-i);
-                    var monthStartDate = new DateTime(monthStart.Year, monthStart.Month, 1);
+                    var monthStartDate = new DateTime(2025, month, 1);
                     var monthEndDate = monthStartDate.AddMonths(1).AddDays(-1);
+                    
+                    // Get the month name
+                    var monthName = monthStartDate.ToString("MMM"); // Jan, Feb, Mar, etc.
                     
                     // Count active users (users who logged in during this month)
                     var activeUsers = await _context.Users
@@ -99,15 +114,14 @@ namespace SpendSmart_Backend.Controllers
                         .CountAsync(u => u.CreatedAt >= monthStartDate && 
                                    u.CreatedAt <= monthEndDate);
                     
-                                        // Simple demo data modifiers
-                    var demoActiveUsers = activeUsers + 1200;
-                    var demoNewRegistrations = newRegistrations + 180;
-                    
+                    // Add to list in calendar order (Jan to Dec)
                     activityData.Add(new
                     {
-                        month = months[11 - i],
-                        activeUsers = demoActiveUsers,
-                        newRegistrations = demoNewRegistrations
+                        month = monthName,
+                        activeUsers = activeUsers,
+                        newRegistrations = newRegistrations,
+                        year = 2025,
+                        monthNumber = month
                     });
                 }
                 
@@ -115,26 +129,8 @@ namespace SpendSmart_Backend.Controllers
             }
             catch (Exception ex)
             {
-                // Fallback demo data if database fails
-                Console.WriteLine($"Database error in GetUserActivityStatistics: {ex.Message}");
-                
-                var fallbackData = new List<object>
-                {
-                    new { month = "Jan", activeUsers = 1180, newRegistrations = 150 },
-                    new { month = "Feb", activeUsers = 1220, newRegistrations = 165 },
-                    new { month = "Mar", activeUsers = 1280, newRegistrations = 190 },
-                    new { month = "Apr", activeUsers = 1320, newRegistrations = 205 },
-                    new { month = "May", activeUsers = 1380, newRegistrations = 220 },
-                    new { month = "Jun", activeUsers = 1450, newRegistrations = 240 },
-                    new { month = "Jul", activeUsers = 1520, newRegistrations = 260 },
-                    new { month = "Aug", activeUsers = 1490, newRegistrations = 245 },
-                    new { month = "Sep", activeUsers = 1430, newRegistrations = 215 },
-                    new { month = "Oct", activeUsers = 1390, newRegistrations = 195 },
-                    new { month = "Nov", activeUsers = 1350, newRegistrations = 175 },
-                    new { month = "Dec", activeUsers = 1320, newRegistrations = 160 }
-                };
-                
-                return Ok(fallbackData);
+                // Return error message instead of demo data
+                return BadRequest(new { error = "Database connection failed", details = ex.Message });
             }
         }
 
@@ -144,45 +140,31 @@ namespace SpendSmart_Backend.Controllers
         {
             try
             {
-                // First check if database is accessible
-                var totalUsers = await _context.Users.CountAsync();
-                
-                // Get login data for all 12 months (for demo purposes)
+                // Get REAL login data for 2025 calendar year (Jan to Dec)
                 var loginData = new List<object>();
-                var monthLabels = new[] { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
                 
-                for (int i = 11; i >= 0; i--)
+                // Generate all 12 months of 2025
+                for (int month = 1; month <= 12; month++)
                 {
-                    var date = DateTime.UtcNow.AddMonths(-i);
+                    var monthStartDate = new DateTime(2025, month, 1);
+                    var monthEndDate = monthStartDate.AddMonths(1).AddDays(-1);
                     
-                    // More robust query with better error handling
-                    var monthlyLogins = 0;
-                    try
-                    {
-                        var monthStart = new DateTime(date.Year, date.Month, 1);
-                        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-                        
-                        monthlyLogins = await _context.Users
-                            .Where(u => u.LastLoginAt.HasValue && 
-                                       u.LastLoginAt.Value >= monthStart && 
-                                       u.LastLoginAt.Value <= monthEnd)
-                            .CountAsync();
-                    }
-                    catch (Exception queryEx)
-                    {
-                        // Log the query error but continue with 0 count
-                        Console.WriteLine($"Query error for month {date:yyyy-MM}: {queryEx.Message}");
-                        monthlyLogins = 0;
-                    }
+                    // Get the month name
+                    var monthName = monthStartDate.ToString("MMM").ToUpper(); // JAN, FEB, MAR, etc.
+                    
+                    // Count users who logged in during this month
+                    var monthlyLogins = await _context.Users
+                        .CountAsync(u => u.LastLoginAt.HasValue && 
+                                   u.LastLoginAt.Value >= monthStartDate && 
+                                   u.LastLoginAt.Value <= monthEndDate);
 
-                    // Simple demo data modifier
-                                       
-                    var demoLogins = monthlyLogins + 400;
-                    
+                    // Add to list in calendar order (Jan to Dec)
                     loginData.Add(new
                     {
-                        month = monthLabels[11 - i], // Map to month labels
-                        logins = demoLogins
+                        month = monthName,
+                        logins = monthlyLogins,
+                        year = 2025,
+                        monthNumber = month
                     });
                 }
 
@@ -190,26 +172,8 @@ namespace SpendSmart_Backend.Controllers
             }
             catch (Exception ex)
             {
-                // If database fails, return demo data
-                Console.WriteLine($"Database error in GetLoginFrequency: {ex.Message}");
-                
-                var fallbackData = new List<object>
-                {
-                    new { month = "JAN", logins = 420 },
-                    new { month = "FEB", logins = 380 },
-                    new { month = "MAR", logins = 450 },
-                    new { month = "APR", logins = 480 },
-                    new { month = "MAY", logins = 520 },
-                    new { month = "JUN", logins = 550 },
-                    new { month = "JUL", logins = 600 },
-                    new { month = "AUG", logins = 580 },
-                    new { month = "SEP", logins = 510 },
-                    new { month = "OCT", logins = 490 },
-                    new { month = "NOV", logins = 460 },
-                    new { month = "DEC", logins = 440 }
-                };
-                
-                return Ok(fallbackData);
+                // Return error message instead of demo data
+                return BadRequest(new { error = "Database connection failed", details = ex.Message });
             }
         }
 
@@ -254,10 +218,17 @@ namespace SpendSmart_Backend.Controllers
                 _context.Users.AddRange(testUsers);
                 await _context.SaveChangesAsync();
 
+                // 🔔 CREATE NOTIFICATIONS FOR NEW USERS
+                foreach (var user in testUsers)
+                {
+                    await _notificationService.CreateNewUserNotificationAsync(user.UserName, user.Id);
+                }
+
                 return Ok(new { 
                     message = "Test data seeded successfully", 
                     usersCreated = testUsers.Count,
-                    loginPattern = "Users 1-5: Last 5 days, Users 6-8: 1 week ago, Users 9-10: 2 weeks ago"
+                    loginPattern = "Users 1-5: Last 5 days, Users 6-8: 1 week ago, Users 9-10: 2 weeks ago",
+                    notificationsCreated = testUsers.Count
                 });
             }
             catch (Exception ex)
@@ -342,42 +313,6 @@ namespace SpendSmart_Backend.Controllers
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
 
-            return NoContent();
-        }
-
-        // PUT: api/User/{id}/suspend - Suspend user (Admin only)
-        [HttpPut("{id}/suspend")]
-        public async Task<IActionResult> SuspendUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound($"User with ID {id} not found.");
-            }
-
-            user.Status = "Suspended";
-            user.IsActive = false;
-            user.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
-        // PUT: api/User/{id}/activate - Activate user (Admin only)
-        [HttpPut("{id}/activate")]
-        public async Task<IActionResult> ActivateUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound($"User with ID {id} not found.");
-            }
-
-            user.Status = "Active";
-            user.IsActive = true;
-            user.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
