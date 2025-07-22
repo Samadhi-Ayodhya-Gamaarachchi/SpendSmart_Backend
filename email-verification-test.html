@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification Test - SpendSmart</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .test-link {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background: #1976d2;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .test-link:hover {
+            background: #1565c0;
+        }
+        .success { background: #4caf50; }
+        .error { background: #f44336; }
+        .info { 
+            background: #e3f2fd; 
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Email Verification Test - SpendSmart</h1>
+        
+        <div class="info">
+            <strong>📋 Test Requirements:</strong><br>
+            ✅ Links should redirect to User Settings in same window (not new tab)<br>
+            ✅ Should show "Email verification is successful" notification<br>
+            ✅ URL should be cleaned after redirect<br>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Test 1: Initial Email Verification (New User Registration)</h2>
+            <p><strong>Scenario:</strong> User clicks verification link from welcome email</p>
+            <p><strong>Expected:</strong> Redirect to User Settings with success notification</p>
+            
+            <a href="http://localhost:5110/api/EmailVerification/verify-email?email=test@example.com&token=test-token-123" 
+               class="test-link success" 
+               target="_self">
+               ✅ Test Valid Email Verification
+            </a>
+            
+            <a href="http://localhost:5110/api/EmailVerification/verify-email?email=test@example.com&token=invalid-token" 
+               class="test-link error" 
+               target="_self">
+               ❌ Test Invalid Token
+            </a>
+
+            <a href="http://localhost:5110/api/EmailVerification/verify-email?email=&token=" 
+               class="test-link error" 
+               target="_self">
+               ❌ Test Empty Parameters
+            </a>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Test 2: Email Change Verification</h2>
+            <p><strong>Scenario:</strong> User changes email and clicks verification link</p>
+            <p><strong>Expected:</strong> Redirect to User Settings with success notification</p>
+            
+            <a href="http://localhost:5110/api/EmailVerification/verify-change?userId=2&token=test-change-token-123" 
+               class="test-link success" 
+               target="_self">
+               ✅ Test Valid Email Change Verification
+            </a>
+            
+            <a href="http://localhost:5110/api/EmailVerification/verify-change?userId=2&token=invalid-change-token" 
+               class="test-link error" 
+               target="_self">
+               ❌ Test Invalid Change Token
+            </a>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Test 3: Direct User Settings Access</h2>
+            <p><strong>Scenario:</strong> Direct navigation to User Settings (baseline test)</p>
+            
+            <a href="http://localhost:5173/settings" 
+               class="test-link" 
+               target="_self">
+               🏠 Open User Settings Directly
+            </a>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Test Instructions:</h2>
+            <ol>
+                <li><strong>Start Backend:</strong> Make sure API server is running on port 5110</li>
+                <li><strong>Start Frontend:</strong> Make sure React app is running on port 5173</li>
+                <li><strong>Click Test Links:</strong> Each link should redirect to User Settings</li>
+                <li><strong>Check Notifications:</strong> Success/error messages should appear</li>
+                <li><strong>Verify URL:</strong> Query parameters should be removed after redirect</li>
+                <li><strong>Check Console:</strong> No errors should appear in browser console</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Expected Results:</h2>
+            <ul>
+                <li>✅ <strong>Valid verification links:</strong> Green success notification at top of page</li>
+                <li>❌ <strong>Invalid verification links:</strong> Red error notification at top of page</li>
+                <li>🔗 <strong>URL after redirect:</strong> <code>http://localhost:5173/settings</code> (no query params)</li>
+                <li>🌐 <strong>Same window:</strong> No new tabs or windows should open</li>
+                <li>⏱️ <strong>Auto-close:</strong> Notifications should auto-hide after 6 seconds</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <strong>🐛 Debugging Tips:</strong><br>
+            • Check browser console for JavaScript errors<br>
+            • Check Network tab for API calls<br>
+            • Verify backend server is responding on port 5110<br>
+            • Check that User Settings page loads correctly<br>
+        </div>
+    </div>
+
+    <script>
+        // Add click tracking for testing
+        document.querySelectorAll('.test-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                console.log('🧪 Testing email verification link:', this.href);
+                console.log('🎯 Expected: Redirect to User Settings with notification');
+            });
+        });
+
+        // Log current page info
+        console.log('🧪 Email Verification Test Page Loaded');
+        console.log('📍 Current URL:', window.location.href);
+        console.log('🚀 Ready to test email verification redirects!');
+    </script>
+</body>
+</html>

@@ -64,6 +64,45 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
+        /// <summary>
+        /// Verify initial email address via GET request (from email link)
+        /// </summary>
+        /// <param name="email">User email</param>
+        /// <param name="token">Verification token</param>
+        /// <returns>Redirect to User Settings with verification status</returns>
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmailFromLink([FromQuery] string email, [FromQuery] string token)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
+                {
+                    return Redirect("http://localhost:5173/settings?emailVerification=error&message=Invalid verification link");
+                }
+
+                var user = await _context.Users.FirstOrDefaultAsync(u =>
+                    u.Email == email &&
+                    u.EmailVerificationToken == token &&
+                    !u.IsEmailVerified);
+
+                if (user == null)
+                {
+                    return Redirect("http://localhost:5173/settings?emailVerification=error&message=Invalid or expired verification link");
+                }
+
+                // Mark email as verified
+                user.IsEmailVerified = true;
+                user.EmailVerificationToken = null;
+                await _context.SaveChangesAsync();
+
+                return Redirect("http://localhost:5173/settings?emailVerification=success&message=Email verified successfully");
+            }
+            catch (Exception)
+            {
+                return Redirect("http://localhost:5173/settings?emailVerification=error&message=An error occurred during verification");
+            }
+        }
+
         [HttpPost("request-change")]
         public async Task<IActionResult> RequestEmailChange([FromBody] EmailChangeRequestDto request)
         {
@@ -211,13 +250,13 @@ namespace SpendSmart_Backend.Controllers
 
                 await _context.SaveChangesAsync();
 
-                // Redirect to frontend success page
-                return Redirect("http://localhost:5173/settings?emailChanged=true");
+                // Redirect to frontend User Settings page with success message
+                return Redirect("http://localhost:5173/settings?emailVerification=success");
             }
             catch (Exception)
             {
-                // Redirect to frontend error page
-                return Redirect("http://localhost:5173/settings?emailChanged=false&error=true");
+                // Redirect to frontend User Settings page with error message
+                return Redirect("http://localhost:5173/settings?emailVerification=error");
             }
         }
 
