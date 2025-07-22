@@ -18,8 +18,8 @@ namespace SpendSmart_Backend.Controllers
             _transactionService = transactionService;
         }
 
-        [HttpPost("CreateTransaction")]
-        public async Task<IActionResult> CreateTransaction([FromBody] TransactionDto transactionDto)
+        [HttpPost("CreateTransaction/{userId}")]
+        public async Task<IActionResult> CreateTransaction(int userId, [FromBody] TransactionDto transactionDto)
         {
             try
             {
@@ -27,7 +27,7 @@ namespace SpendSmart_Backend.Controllers
                 {
                     return BadRequest("Transaction data is null");
                 }
-                var transaction = await _transactionService.CreateTransactionAsync(transactionDto);
+                var transaction = await _transactionService.CreateTransactionAsync(userId, transactionDto);
                 return Ok(transaction);
 
             }
@@ -37,8 +37,9 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
-        [HttpGet("GetTransaction")]
+        [HttpGet("GetTransaction/{userId}")]
         public async Task<IActionResult> GetTransaction(
+            int userId,
             [FromQuery] string? type, 
             [FromQuery] string? category, 
             [FromQuery] DateTime? date,
@@ -50,7 +51,7 @@ namespace SpendSmart_Backend.Controllers
         {
             try
             {
-                var transactions = await _transactionService.GetTransactionAsync(type, category, date, startDate, endDate, sorting);
+                var transactions = await _transactionService.GetTransactionAsync(userId, type, category, date, startDate, endDate, sorting);
                 return Ok(transactions);
             }
             catch(Exception ex)
@@ -59,12 +60,12 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
-        [HttpDelete("DeleteTransaction/{transactionId}")]
-        public async Task<IActionResult> DeleteTransaction(int transactionId)
+        [HttpDelete("DeleteTransaction/{userId}/{transactionId}")]
+        public async Task<IActionResult> DeleteTransaction(int userId, int transactionId)
         {
             try
             {
-                var result = await _transactionService.DeleteTransactionAsync(transactionId);
+                var result = await _transactionService.DeleteTransactionAsync(userId, transactionId);
                 if (!result)
                     return NotFound("Transaction not found");
                 return Ok("Transaction deleted successfully");
