@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpendSmart_Backend.Data;
 
@@ -11,9 +12,11 @@ using SpendSmart_Backend.Data;
 namespace SpendSmart_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250720021502_InitialCreateDatabase")]
+    partial class InitialCreateDatabase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,23 +37,11 @@ namespace SpendSmart_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("EmailVerificationToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsEmailVerified")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Password")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ResetToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ResetTokenExpiry")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserName")
+                    b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -188,10 +179,6 @@ namespace SpendSmart_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
 
                     b.ToTable("Categories", t =>
@@ -242,50 +229,52 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
                 {
-
-                    b.Property<int>("Id")
+                    b.Property<int>("RecurringId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RecurringId"));
 
                     b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("AutoDeduction")
-                        .HasColumnType("bit");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("date");
 
                     b.Property<string>("Frequency")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
-                    b.Property<int?>("Occurrences")
-                        .HasColumnType("int");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("NextExecutionDate")
+                        .HasColumnType("date");
 
-                    b.Property<string>("Type")
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("TransactionType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-
-                    b.HasKey("Id");
-
+                    b.HasKey("RecurringId");
 
                     b.HasIndex("CategoryId");
 
@@ -385,12 +374,20 @@ namespace SpendSmart_Backend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("bit");
 
-                    b.Property<int?>("RecurringTransactionId")
-                        .HasColumnType("int");
+                    b.Property<DateTime?>("RecurringEndDate")
+                        .HasColumnType("date");
 
-                    b.Property<string>("Type")
+                    b.Property<string>("RecurringFrequency")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("TransactionType")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -448,10 +445,8 @@ namespace SpendSmart_Backend.Migrations
 
                     b.HasIndex("CategoryId");
 
-
-                    b.HasIndex("RecurringTransactionId");
-
-                    b.HasIndex("UserId");
+                    b.HasIndex("TransactionId")
+                        .HasDatabaseName("IX_TransactionBudgetImpact_TransactionId");
 
                     b.ToTable("TransactionBudgetImpacts");
                 });
@@ -472,21 +467,15 @@ namespace SpendSmart_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("EmailVerificationToken")
+                    b.Property<string>("FirstName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsEmailVerified")
-                        .HasColumnType("bit");
+                    b.Property<string>("LastName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ResetToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ResetTokenExpiry")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserName")
                         .IsRequired()
@@ -587,25 +576,6 @@ namespace SpendSmart_Backend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
-                {
-                    b.HasOne("SpendSmart_Backend.Models.Category", "Category")
-                        .WithMany("RecurringTransactions")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.User", "User")
-                        .WithMany("RecurringTransactions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("SpendSmart_Backend.Models.Report", b =>
                 {
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
@@ -644,20 +614,13 @@ namespace SpendSmart_Backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SpendSmart_Backend.Models.RecurringTransaction", "RecurringTransaction")
-                        .WithMany("Transactions")
-                        .HasForeignKey("RecurringTransactionId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
                         .WithMany("Transactions")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Category");
-
-                    b.Navigation("RecurringTransaction");
 
                     b.Navigation("User");
                 });
@@ -730,13 +693,7 @@ namespace SpendSmart_Backend.Migrations
 
                     b.Navigation("Budgets");
 
-                    b.Navigation("RecurringTransactions");
-
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
-                {
+                    b.Navigation("TransactionBudgetImpacts");
 
                     b.Navigation("Transactions");
                 });
@@ -758,8 +715,6 @@ namespace SpendSmart_Backend.Migrations
                     b.Navigation("Goals");
 
                     b.Navigation("ManagedUsers");
-
-                    b.Navigation("RecurringTransactions");
 
                     b.Navigation("Reports");
 

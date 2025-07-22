@@ -4,8 +4,10 @@ using Microsoft.IdentityModel.Tokens;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Services;
 
+
 using System.Text;
 using System.Text.Json;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +42,7 @@ builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionSer
 builder.Services.AddHostedService<RecurringTransactionBackgroundService>();
 
 
+e
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>

@@ -6,6 +6,7 @@ namespace SpendSmart_Backend.Models
     public class RecurringTransaction
     {
         [Key]
+
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
         public string Type { get; set; }
@@ -28,3 +29,4 @@ namespace SpendSmart_Backend.Models
         public ICollection<Transaction> Transactions { get; set; }
     }
 }
+
