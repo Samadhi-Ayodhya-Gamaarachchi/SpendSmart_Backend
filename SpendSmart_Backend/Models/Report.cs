@@ -8,8 +8,6 @@ namespace SpendSmart_Backend.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string Type { get; set; }
         public string Format { get; set; }
         public DateTime DateGenerated { get; set; }
         public int UserId { get; set; }
