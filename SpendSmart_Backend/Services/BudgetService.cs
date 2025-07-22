@@ -1,197 +1,459 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
-using SpendSmart_Backend.Models;
 using SpendSmart_Backend.DTOs;
+using SpendSmart_Backend.Models;
 
 namespace SpendSmart_Backend.Services
 {
-    public class BudgetService : IBudgetService
+    public class BudgetService
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<BudgetService> _logger;
 
-        public BudgetService(ApplicationDbContext context, ILogger<BudgetService> logger)
+        public BudgetService(ApplicationDbContext context)
         {
             _context = context;
-            _logger = logger;
         }
 
-        public async Task<List<BudgetImpactDto>> ProcessBudgetImpactAsync(
-            int userId,
-            int categoryId,
-            decimal amount,
-            DateTime transactionDate,
-            int transactionId)
+        public async Task<BudgetResponseDto?> GetBudgetDetailsAsync(int budgetId)
         {
-            var budgetImpacts = new List<BudgetImpactDto>();
+            var budget = await _context.Budgets
+                .Include(b => b.BudgetCategories)
+                .ThenInclude(bc => bc.Category)
+                .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
 
-            try
+            if (budget == null)
+                return null;
+
+            // Calculate days remaining
+            int daysRemaining = (budget.EndDate - DateTime.Today).Days;
+            if (daysRemaining < 0) daysRemaining = 0;
+
+            // Calculate progress percentage
+            decimal progressPercentage = 0;
+            if (budget.TotalBudgetAmount > 0)
             {
-                // Find all active budgets that match the transaction date and user
-                var applicableBudgets = await _context.Budgets
-                    .Where(b => b.UserId == userId &&
-                               b.Status == "Active" &&
-                               b.StartDate <= transactionDate.Date &&
-                               b.EndDate >= transactionDate.Date)
-                    .Include(b => b.BudgetCategories.Where(bc => bc.CategoryId == categoryId))
-                    .ToListAsync();
+                progressPercentage = (budget.TotalSpentAmount / budget.TotalBudgetAmount) * 100;
+                progressPercentage = Math.Min(progressPercentage, 100); // Cap at 100%
+            }
 
-                foreach (var budget in applicableBudgets)
+            // Map budget categories to DTOs
+            var categoryDtos = budget.BudgetCategories.Select(bc => new BudgetCategoryResponseDto
+            {
+                CategoryId = bc.CategoryId,
+                CategoryName = bc.Category.CategoryName,
+                CategoryIcon = bc.Category.Icon,
+                CategoryColor = bc.Category.Color,
+                AllocatedAmount = bc.AllocatedAmount,
+                SpentAmount = bc.SpentAmount,
+                RemainingAmount = bc.AllocatedAmount - bc.SpentAmount,
+                ProgressPercentage = bc.AllocatedAmount > 0 ? Math.Min((bc.SpentAmount / bc.AllocatedAmount) * 100, 100) : 0
+            }).ToList();
+
+            // Create the budget response DTO
+            return new BudgetResponseDto
+            {
+                BudgetId = budget.BudgetId,
+                BudgetName = budget.BudgetName,
+                BudgetType = budget.BudgetType,
+                StartDate = budget.StartDate,
+                EndDate = budget.EndDate,
+                TotalBudgetAmount = budget.TotalBudgetAmount,
+                TotalSpentAmount = budget.TotalSpentAmount,
+                RemainingAmount = budget.TotalBudgetAmount - budget.TotalSpentAmount,
+                Description = budget.Description,
+                ProgressPercentage = progressPercentage,
+                DaysRemaining = daysRemaining,
+                Status = budget.Status,
+                Categories = categoryDtos
+            };
+        }
+
+        public async Task<List<BudgetSummaryDto>> GetUserBudgetsAsync(int userId)
+        {
+            var budgets = await _context.Budgets
+                .Where(b => b.UserId == userId)
+                .OrderByDescending(b => b.StartDate)
+                .Select(b => new BudgetSummaryDto
                 {
-                    var budgetCategory = budget.BudgetCategories.FirstOrDefault(bc => bc.CategoryId == categoryId);
+                    BudgetId = b.BudgetId,
+                    BudgetName = b.BudgetName,
+                    BudgetType = b.BudgetType,
+                    StartDate = b.StartDate,
+                    EndDate = b.EndDate,
+                    TotalBudgetAmount = b.TotalBudgetAmount,
+                    TotalSpentAmount = b.TotalSpentAmount,
+                    RemainingAmount = b.TotalBudgetAmount - b.TotalSpentAmount,
+                    ProgressPercentage = b.TotalBudgetAmount > 0 ? Math.Min((b.TotalSpentAmount / b.TotalBudgetAmount) * 100, 100) : 0,
+                    Status = b.Status
+                })
+                .ToListAsync();
 
-                    // Only process if the budget has this category allocated
-                    if (budgetCategory != null)
+            return budgets;
+        }
+
+        public async Task<List<TransactionDetailsDto>> GetBudgetTransactionsAsync(int budgetId)
+        {
+            var budget = await _context.Budgets.FindAsync(budgetId);
+            if (budget == null)
+                return new List<TransactionDetailsDto>();
+
+            var transactions = await _context.TransactionBudgetImpacts
+                .Where(tbi => tbi.BudgetId == budgetId)
+                .Include(tbi => tbi.Transaction)
+                .ThenInclude(t => t.Category)
+                .Select(tbi => new TransactionDetailsDto
+                {
+                    TransactionId = tbi.TransactionId,
+                    TransactionType = tbi.Transaction.TransactionType,
+                    CategoryId = tbi.Transaction.CategoryId,
+                    CategoryName = tbi.Transaction.Category.CategoryName,
+                    Amount = tbi.Transaction.Amount,
+                    TransactionDate = tbi.Transaction.TransactionDate.ToString("yyyy-MM-dd"),
+                    Description = tbi.Transaction.Description,
+                    MerchantName = tbi.Transaction.MerchantName,
+                    Location = tbi.Transaction.Location,
+                    Tags = tbi.Transaction.Tags != null ? tbi.Transaction.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>(),
+                    ReceiptUrl = tbi.Transaction.ReceiptUrl,
+                    IsRecurring = tbi.Transaction.IsRecurring,
+                    RecurringFrequency = tbi.Transaction.RecurringFrequency,
+                    RecurringEndDate = tbi.Transaction.RecurringEndDate.HasValue ? tbi.Transaction.RecurringEndDate.Value.ToString("yyyy-MM-dd") : null,
+                    BudgetImpacts = new List<BudgetImpactDto>
                     {
-                        // Create transaction budget impact record
-                        var transactionBudgetImpact = new TransactionBudgetImpact
+                        new BudgetImpactDto
                         {
-                            TransactionId = transactionId,
-                            BudgetId = budget.BudgetId,
-                            CategoryId = categoryId,
-                            ImpactAmount = amount,
-                            CreatedAt = DateTime.UtcNow
-                        };
-
-                        _context.TransactionBudgetImpacts.Add(transactionBudgetImpact);
-
-                        // Update budget category spent amount
-                        budgetCategory.SpentAmount += amount;
-                        budgetCategory.UpdatedAt = DateTime.UtcNow;
-
-                        // Update total budget spent amount
-                        budget.TotalSpentAmount += amount;
-                        budget.UpdatedAt = DateTime.UtcNow;
-
-                        budgetImpacts.Add(new BudgetImpactDto
-                        {
-                            BudgetId = budget.BudgetId,
+                            BudgetId = tbi.BudgetId,
                             BudgetName = budget.BudgetName,
-                            ImpactAmount = amount
-                        });
-
-                        _logger.LogInformation("Applied budget impact: Budget {BudgetId}, Category {CategoryId}, Amount {Amount}",
-                            budget.BudgetId, categoryId, amount);
+                            CategoryId = tbi.CategoryId,
+                            CategoryName = tbi.Transaction.Category.CategoryName,
+                            ImpactAmount = tbi.ImpactAmount,
+                            ImpactType = "Deduction"
+                        }
                     }
-                }
+                })
+                .OrderByDescending(t => t.TransactionDate)
+                .ToListAsync();
 
-                await _context.SaveChangesAsync();
-                return budgetImpacts;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing budget impact for transaction {TransactionId}", transactionId);
-                throw;
-            }
+            return transactions;
         }
 
-        public async Task ReverseBudgetImpactAsync(int transactionId)
+        public async Task<List<ExpenseBreakdownDto>> GetExpenseBreakdownAsync(int budgetId)
         {
-            try
-            {
-                var budgetImpacts = await _context.TransactionBudgetImpacts
-                    .Where(tbi => tbi.TransactionId == transactionId)
-                    .Include(tbi => tbi.Budget)
-                    .ThenInclude(b => b.BudgetCategories)
-                    .ToListAsync();
+            var budget = await _context.Budgets
+                .Include(b => b.BudgetCategories)
+                .ThenInclude(bc => bc.Category)
+                .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
 
-                foreach (var impact in budgetImpacts)
+            if (budget == null)
+                return new List<ExpenseBreakdownDto>();
+
+            var totalSpent = budget.TotalSpentAmount;
+            
+            var breakdown = budget.BudgetCategories
+                .Where(bc => bc.SpentAmount > 0)
+                .Select(bc => new ExpenseBreakdownDto
                 {
-                    // Find the budget category that was impacted
-                    var budgetCategory = impact.Budget.BudgetCategories
-                        .FirstOrDefault(bc => bc.CategoryId == impact.CategoryId);
+                    CategoryId = bc.CategoryId,
+                    CategoryName = bc.Category.CategoryName,
+                    Amount = bc.SpentAmount,
+                    Percentage = totalSpent > 0 ? (bc.SpentAmount / totalSpent) * 100 : 0,
+                    Color = bc.Category.Color,
+                    Icon = bc.Category.Icon
+                })
+                .OrderByDescending(eb => eb.Amount)
+                .ToList();
 
-                    if (budgetCategory != null)
+            return breakdown;
+        }
+
+        public async Task<List<PeriodDataDto>> GetBudgetPeriodDataAsync(int budgetId)
+        {
+            var budget = await _context.Budgets
+                .Include(b => b.TransactionBudgetImpacts)
+                .ThenInclude(tbi => tbi.Transaction)
+                .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
+
+            if (budget == null)
+                return new List<PeriodDataDto>();
+
+            // Get all transaction dates within the budget period
+            var transactions = budget.TransactionBudgetImpacts
+                .Select(tbi => new
+                {
+                    Date = tbi.Transaction.TransactionDate.Date,
+                    Amount = tbi.ImpactAmount
+                })
+                .OrderBy(t => t.Date)
+                .ToList();
+
+            // Group transactions by date and calculate daily totals
+            var dailyTotals = transactions
+                .GroupBy(t => t.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Amount = g.Sum(t => t.Amount)
+                })
+                .OrderBy(d => d.Date)
+                .ToList();
+
+            // Calculate budget limit per day
+            decimal dailyBudgetLimit = 0;
+            int totalDays = (budget.EndDate - budget.StartDate).Days + 1;
+            if (totalDays > 0)
+            {
+                dailyBudgetLimit = budget.TotalBudgetAmount / totalDays;
+            }
+
+            // Generate period data for each day in the budget period
+            var periodData = new List<PeriodDataDto>();
+            decimal cumulativeAmount = 0;
+
+            for (var date = budget.StartDate; date <= budget.EndDate; date = date.AddDays(1))
+            {
+                var dailyTotal = dailyTotals.FirstOrDefault(d => d.Date == date.Date)?.Amount ?? 0;
+                cumulativeAmount += dailyTotal;
+
+                periodData.Add(new PeriodDataDto
+                {
+                    Date = date,
+                    Amount = dailyTotal,
+                    CumulativeAmount = cumulativeAmount,
+                    BudgetLimit = dailyBudgetLimit * (date - budget.StartDate).Days
+                });
+            }
+
+            return periodData;
+        }
+
+        public async Task<BudgetResponseDto> CreateBudgetAsync(int userId, CreateBudgetDto createBudgetDto)
+        {
+            // Check if user exists
+            var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                throw new ArgumentException($"User with ID {userId} does not exist.");
+            }
+            
+            // Calculate end date based on budget type
+            DateTime endDate;
+            if (createBudgetDto.BudgetType.ToLower() == "monthly")
+            {
+                endDate = createBudgetDto.StartDate.AddMonths(1).AddDays(-1);
+            }
+            else if (createBudgetDto.BudgetType.ToLower() == "annually")
+            {
+                endDate = createBudgetDto.StartDate.AddYears(1).AddDays(-1);
+            }
+            else
+            {
+                throw new ArgumentException("Invalid budget type. Must be 'Monthly' or 'Annually'.");
+            }
+
+            // Calculate total budget amount
+            decimal totalBudgetAmount = createBudgetDto.CategoryAllocations.Sum(ca => ca.AllocatedAmount);
+
+            // Create new budget
+            var budget = new Budget
+            {
+                UserId = userId,
+                BudgetName = createBudgetDto.BudgetName,
+                BudgetType = createBudgetDto.BudgetType,
+                StartDate = createBudgetDto.StartDate,
+                EndDate = endDate,
+                TotalBudgetAmount = totalBudgetAmount,
+                Description = createBudgetDto.Description,
+                Status = "Active",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Budgets.Add(budget);
+            await _context.SaveChangesAsync();
+
+            // Create budget categories
+            foreach (var allocation in createBudgetDto.CategoryAllocations)
+            {
+                var budgetCategory = new BudgetCategory
+                {
+                    BudgetId = budget.BudgetId,
+                    CategoryId = allocation.CategoryId,
+                    AllocatedAmount = allocation.AllocatedAmount,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.BudgetCategories.Add(budgetCategory);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Return the newly created budget details
+            return await GetBudgetDetailsAsync(budget.BudgetId);
+        }
+
+        public async Task<BudgetResponseDto?> UpdateBudgetAsync(int budgetId, UpdateBudgetDto updateBudgetDto)
+        {
+            var budget = await _context.Budgets
+                .Include(b => b.BudgetCategories)
+                .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
+
+            if (budget == null)
+                return null;
+
+            // Calculate end date based on budget type
+            DateTime endDate;
+            if (updateBudgetDto.BudgetType.ToLower() == "monthly")
+            {
+                endDate = updateBudgetDto.StartDate.AddMonths(1).AddDays(-1);
+            }
+            else if (updateBudgetDto.BudgetType.ToLower() == "annually")
+            {
+                endDate = updateBudgetDto.StartDate.AddYears(1).AddDays(-1);
+            }
+            else
+            {
+                throw new ArgumentException("Invalid budget type. Must be 'Monthly' or 'Annually'.");
+            }
+
+            // Update budget properties
+            budget.BudgetName = updateBudgetDto.BudgetName;
+            budget.BudgetType = updateBudgetDto.BudgetType;
+            budget.StartDate = updateBudgetDto.StartDate;
+            budget.EndDate = endDate;
+            budget.Description = updateBudgetDto.Description;
+            budget.UpdatedAt = DateTime.UtcNow;
+
+            // Calculate new total budget amount
+            decimal totalBudgetAmount = updateBudgetDto.CategoryAllocations.Sum(ca => ca.AllocatedAmount);
+            budget.TotalBudgetAmount = totalBudgetAmount;
+
+            // Update or create budget categories
+            foreach (var allocation in updateBudgetDto.CategoryAllocations)
+            {
+                var existingCategory = budget.BudgetCategories.FirstOrDefault(bc => bc.CategoryId == allocation.CategoryId);
+
+                if (existingCategory != null)
+                {
+                    // Update existing category allocation
+                    existingCategory.AllocatedAmount = allocation.AllocatedAmount;
+                    existingCategory.UpdatedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    // Create new category allocation
+                    var budgetCategory = new BudgetCategory
                     {
-                        // Reverse the spent amount in budget category
-                        budgetCategory.SpentAmount -= impact.ImpactAmount;
-                        budgetCategory.UpdatedAt = DateTime.UtcNow;
+                        BudgetId = budget.BudgetId,
+                        CategoryId = allocation.CategoryId,
+                        AllocatedAmount = allocation.AllocatedAmount,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
 
-                        // Ensure spent amount doesn't go below zero
-                        if (budgetCategory.SpentAmount < 0)
-                            budgetCategory.SpentAmount = 0;
-                    }
-
-                    // Reverse the total spent amount in budget
-                    impact.Budget.TotalSpentAmount -= impact.ImpactAmount;
-                    impact.Budget.UpdatedAt = DateTime.UtcNow;
-
-                    // Ensure total spent amount doesn't go below zero
-                    if (impact.Budget.TotalSpentAmount < 0)
-                        impact.Budget.TotalSpentAmount = 0;
-
-                    _logger.LogInformation("Reversed budget impact: Budget {BudgetId}, Category {CategoryId}, Amount {Amount}",
-                        impact.BudgetId, impact.CategoryId, impact.ImpactAmount);
+                    _context.BudgetCategories.Add(budgetCategory);
                 }
+            }
 
-                // Remove the impact records
-                _context.TransactionBudgetImpacts.RemoveRange(budgetImpacts);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
+            // Remove categories that are no longer in the allocation list
+            var categoriesToRemove = budget.BudgetCategories
+                .Where(bc => !updateBudgetDto.CategoryAllocations.Any(ca => ca.CategoryId == bc.CategoryId))
+                .ToList();
+
+            foreach (var category in categoriesToRemove)
             {
-                _logger.LogError(ex, "Error reversing budget impact for transaction {TransactionId}", transactionId);
-                throw;
+                _context.BudgetCategories.Remove(category);
             }
+
+            await _context.SaveChangesAsync();
+
+            // Return the updated budget details
+            return await GetBudgetDetailsAsync(budget.BudgetId);
         }
 
-        public async Task RecalculateBudgetAmountsAsync(int budgetId)
+        public async Task<bool> DeleteBudgetAsync(int budgetId)
         {
-            try
-            {
-                var budget = await _context.Budgets
-                    .Include(b => b.BudgetCategories)
-                    .Include(b => b.TransactionBudgetImpacts)
-                    .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
-
-                if (budget == null)
-                {
-                    _logger.LogWarning("Budget {BudgetId} not found for recalculation", budgetId);
-                    return;
-                }
-
-                // Recalculate total spent amount from transaction impacts
-                budget.TotalSpentAmount = budget.TransactionBudgetImpacts.Sum(tbi => tbi.ImpactAmount);
-
-                // Recalculate spent amounts for each category
-                foreach (var budgetCategory in budget.BudgetCategories)
-                {
-                    budgetCategory.SpentAmount = budget.TransactionBudgetImpacts
-                        .Where(tbi => tbi.CategoryId == budgetCategory.CategoryId)
-                        .Sum(tbi => tbi.ImpactAmount);
-
-                    budgetCategory.UpdatedAt = DateTime.UtcNow;
-                }
-
-                budget.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Recalculated budget amounts for budget {BudgetId}", budgetId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error recalculating budget amounts for budget {BudgetId}", budgetId);
-                throw;
-            }
-        }
-
-        public async Task<bool> IsBudgetOverLimitAsync(int budgetId, int categoryId)
-        {
-            try
-            {
-                var budgetCategory = await _context.BudgetCategories
-                    .FirstOrDefaultAsync(bc => bc.BudgetId == budgetId && bc.CategoryId == categoryId);
-
-                if (budgetCategory == null)
-                    return false;
-
-                return budgetCategory.SpentAmount > budgetCategory.AllocatedAmount;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking budget limit for budget {BudgetId}, category {CategoryId}", budgetId, categoryId);
+            var budget = await _context.Budgets.FindAsync(budgetId);
+            if (budget == null)
                 return false;
+
+            _context.Budgets.Remove(budget);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> UpdateBudgetStatusAsync(int budgetId, string status)
+        {
+            var budget = await _context.Budgets.FindAsync(budgetId);
+            if (budget == null)
+                return false;
+
+            if (status != "Active" && status != "Completed" && status != "Cancelled")
+                return false;
+
+            budget.Status = status;
+            budget.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task UpdateBudgetAmountsAsync(int budgetId)
+        {
+            var budget = await _context.Budgets
+                .Include(b => b.BudgetCategories)
+                .Include(b => b.TransactionBudgetImpacts)
+                .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
+
+            if (budget == null)
+                return;
+
+            // Calculate total spent amount from all transaction impacts
+            decimal totalSpent = budget.TransactionBudgetImpacts.Sum(tbi => tbi.ImpactAmount);
+            budget.TotalSpentAmount = totalSpent;
+
+            // Update spent amounts for each category
+            foreach (var category in budget.BudgetCategories)
+            {
+                decimal categorySpent = budget.TransactionBudgetImpacts
+                    .Where(tbi => tbi.CategoryId == category.CategoryId)
+                    .Sum(tbi => tbi.ImpactAmount);
+
+                category.SpentAmount = categorySpent;
+                category.UpdatedAt = DateTime.UtcNow;
             }
+
+            // Update budget status if needed
+            if (budget.Status == "Active")
+            {
+                if (DateTime.Today > budget.EndDate)
+                {
+                    budget.Status = "Completed";
+                }
+                else if (budget.TotalSpentAmount >= budget.TotalBudgetAmount)
+                {
+                    budget.Status = "Exceeded";
+                }
+            }
+
+            budget.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task RecordTransactionImpactAsync(int transactionId, int budgetId, int categoryId, decimal amount)
+        {
+            var impact = new TransactionBudgetImpact
+            {
+                TransactionId = transactionId,
+                BudgetId = budgetId,
+                CategoryId = categoryId,
+                ImpactAmount = amount,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.TransactionBudgetImpacts.Add(impact);
+            await _context.SaveChangesAsync();
+
+            // Update budget amounts
+            await UpdateBudgetAmountsAsync(budgetId);
         }
     }
-}
+} 

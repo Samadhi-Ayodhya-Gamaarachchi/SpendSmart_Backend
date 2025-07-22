@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpendSmart_Backend.Models
@@ -6,7 +6,7 @@ namespace SpendSmart_Backend.Models
     public class TransactionBudgetImpact
     {
         [Key]
-        public int ImpactId { get; set; }
+        public int TransactionBudgetImpactId { get; set; }
 
         [Required]
         public int TransactionId { get; set; }
@@ -33,4 +33,4 @@ namespace SpendSmart_Backend.Models
         [ForeignKey("CategoryId")]
         public virtual Category Category { get; set; }
     }
-}
+} 

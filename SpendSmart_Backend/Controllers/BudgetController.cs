@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
-using SpendSmart_Backend.Models;
 using SpendSmart_Backend.DTOs;
-using SpendSmart_Backend.DTOs.Common;
+using SpendSmart_Backend.Services;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace SpendSmart_Backend.Controllers
 {
@@ -11,361 +14,202 @@ namespace SpendSmart_Backend.Controllers
     [Route("api/[controller]")]
     public class BudgetController : ControllerBase
     {
+        private readonly BudgetService _budgetService;
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<BudgetController> _logger;
 
-        public BudgetController(ApplicationDbContext context, ILogger<BudgetController> logger)
+        public BudgetController(BudgetService budgetService, ApplicationDbContext context)
         {
+            _budgetService = budgetService;
             _context = context;
-            _logger = logger;
+        }
+
+        // GET: api/Budget/debug
+        [HttpGet("debug")]
+        public ActionResult<string> GetDebugInfo()
+        {
+            var budgetType = _context.Model.FindEntityType(typeof(SpendSmart_Backend.Models.Budget));
+            var properties = budgetType.GetProperties().Select(p => new
+            {
+                Name = p.Name,
+                Type = p.ClrType.Name,
+                IsKey = p.IsKey()
+            });
+
+            return Ok(new
+            {
+                BudgetProperties = properties,
+                HasUser = _context.Users.Any(),
+                UserCount = _context.Users.Count(),
+                HasCategories = _context.Categories.Any(),
+                CategoryCount = _context.Categories.Count()
+            });
         }
 
         // GET: api/Budget/user/{userId}
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<ApiResponseDto<List<BudgetSummaryDto>>>> GetUserBudgets(int userId)
+        public async Task<ActionResult<IEnumerable<BudgetSummaryDto>>> GetUserBudgets(int userId)
+        {
+            var budgets = await _budgetService.GetUserBudgetsAsync(userId);
+            return Ok(budgets);
+        }
+
+        // GET: api/Budget/details/{budgetId}
+        [HttpGet("details/{budgetId}")]
+        public async Task<ActionResult<BudgetResponseDto>> GetBudgetDetails(int budgetId)
+        {
+            var budget = await _budgetService.GetBudgetDetailsAsync(budgetId);
+            if (budget == null)
+                return NotFound();
+
+            return Ok(budget);
+        }
+
+        // GET: api/Budget/{budgetId}/transactions
+        [HttpGet("{budgetId}/transactions")]
+        public async Task<ActionResult<IEnumerable<TransactionDetailsDto>>> GetBudgetTransactions(int budgetId)
+        {
+            var transactions = await _budgetService.GetBudgetTransactionsAsync(budgetId);
+            return Ok(transactions);
+        }
+
+        // GET: api/Budget/{budgetId}/expense-breakdown
+        [HttpGet("{budgetId}/expense-breakdown")]
+        public async Task<ActionResult<IEnumerable<ExpenseBreakdownDto>>> GetExpenseBreakdown(int budgetId)
+        {
+            var breakdown = await _budgetService.GetExpenseBreakdownAsync(budgetId);
+            return Ok(breakdown);
+        }
+
+        // GET: api/Budget/{budgetId}/period-data
+        [HttpGet("{budgetId}/period-data")]
+        public async Task<ActionResult<IEnumerable<PeriodDataDto>>> GetBudgetPeriodData(int budgetId)
+        {
+            var periodData = await _budgetService.GetBudgetPeriodDataAsync(budgetId);
+            return Ok(periodData);
+        }
+
+        // POST: api/Budget/create/{userId}
+        [HttpPost("create/{userId}")]
+        public async Task<ActionResult<BudgetResponseDto>> CreateBudget(int userId, CreateBudgetDto createBudgetDto)
         {
             try
             {
-                var budgets = await _context.Budgets
-                    .Where(b => b.UserId == userId)
-                    .Include(b => b.BudgetCategories)
-                    .ThenInclude(bc => bc.Category)
-                    .OrderByDescending(b => b.CreatedAt)
-                    .Select(b => new BudgetSummaryDto
-                    {
-                        BudgetId = b.BudgetId,
-                        BudgetName = b.BudgetName,
-                        BudgetType = b.BudgetType,
-                        StartDate = b.StartDate,
-                        EndDate = b.EndDate,
-                        TotalBudgetAmount = b.TotalBudgetAmount,
-                        TotalSpentAmount = b.TotalSpentAmount,
-                        RemainingAmount = b.RemainingAmount,
-                        ProgressPercentage = b.ProgressPercentage,
-                        Status = b.Status
-                    })
-                    .ToListAsync();
-
-                return Ok(ApiResponseDto<List<BudgetSummaryDto>>.SuccessResponse(budgets));
+                var budget = await _budgetService.CreateBudgetAsync(userId, createBudgetDto);
+                return CreatedAtAction(nameof(GetBudgetDetails), new { budgetId = budget.BudgetId }, budget);
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                _logger.LogError(ex, "Error retrieving budgets for user {UserId}", userId);
-                return StatusCode(500, ApiResponseDto<List<BudgetSummaryDto>>.ErrorResponse("An error occurred while retrieving budgets"));
+                return BadRequest(ex.Message);
             }
         }
 
-        // GET: api/Budget/{budgetId}
-        [HttpGet("{budgetId}")]
-        public async Task<ActionResult<ApiResponseDto<BudgetResponseDto>>> GetBudgetDetails(int budgetId)
+        // PUT: api/Budget/update/{budgetId}
+        [HttpPut("update/{budgetId}")]
+        public async Task<ActionResult<BudgetResponseDto>> UpdateBudget(int budgetId, UpdateBudgetDto updateBudgetDto)
         {
             try
             {
-                var budget = await _context.Budgets
-                    .Include(b => b.BudgetCategories)
-                    .ThenInclude(bc => bc.Category)
-                    .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
-
+                var budget = await _budgetService.UpdateBudgetAsync(budgetId, updateBudgetDto);
                 if (budget == null)
-                {
-                    return NotFound(ApiResponseDto<BudgetResponseDto>.ErrorResponse("Budget not found"));
-                }
+                    return NotFound();
 
-                var budgetDto = new BudgetResponseDto
-                {
-                    BudgetId = budget.BudgetId,
-                    UserId = budget.UserId,
-                    BudgetName = budget.BudgetName,
-                    BudgetType = budget.BudgetType,
-                    StartDate = budget.StartDate,
-                    EndDate = budget.EndDate,
-                    TotalBudgetAmount = budget.TotalBudgetAmount,
-                    TotalSpentAmount = budget.TotalSpentAmount,
-                    RemainingAmount = budget.RemainingAmount,
-                    ProgressPercentage = budget.ProgressPercentage,
-                    Status = budget.Status,
-                    Description = budget.Description,
-                    CreatedAt = budget.CreatedAt,
-                    UpdatedAt = budget.UpdatedAt,
-                    Categories = budget.BudgetCategories.Select(bc => new BudgetCategoryResponseDto
-                    {
-                        BudgetCategoryId = bc.BudgetCategoryId,
-                        CategoryId = bc.CategoryId,
-                        CategoryName = bc.Category.CategoryName,
-                        AllocatedAmount = bc.AllocatedAmount,
-                        SpentAmount = bc.SpentAmount,
-                        RemainingAmount = bc.RemainingAmount,
-                        CreatedAt = bc.CreatedAt,
-                        UpdatedAt = bc.UpdatedAt
-                    }).ToList()
-                };
-
-                return Ok(ApiResponseDto<BudgetResponseDto>.SuccessResponse(budgetDto));
+                return Ok(budget);
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                _logger.LogError(ex, "Error retrieving budget details for budget {BudgetId}", budgetId);
-                return StatusCode(500, ApiResponseDto<BudgetResponseDto>.ErrorResponse("An error occurred while retrieving budget details"));
+                return BadRequest(ex.Message);
             }
         }
 
-        // POST: api/Budget
-        [HttpPost]
-        public async Task<ActionResult<ApiResponseDto<BudgetResponseDto>>> CreateBudget(CreateBudgetRequestDto request, [FromQuery] int userId)
+        // DELETE: api/Budget/delete/{budgetId}
+        [HttpDelete("delete/{budgetId}")]
+        public async Task<IActionResult> DeleteBudget(int budgetId)
         {
-            try
+            var result = await _budgetService.DeleteBudgetAsync(budgetId);
+            if (!result)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        // PUT: api/Budget/{budgetId}/status/{status}
+        [HttpPut("{budgetId}/status/{status}")]
+        public async Task<IActionResult> UpdateBudgetStatus(int budgetId, string status)
+        {
+            var result = await _budgetService.UpdateBudgetStatusAsync(budgetId, status);
+            if (!result)
+                return BadRequest("Invalid budget ID or status");
+
+            return NoContent();
+        }
+        
+        // POST: api/Budget/validate-request/{userId}
+        [HttpPost("validate-request/{userId}")]
+        public IActionResult ValidateBudgetRequest(int userId, [FromBody] CreateBudgetDto createBudgetDto)
+        {
+            // Check if user exists
+            var userExists = _context.Users.Any(u => u.Id == userId);
+            if (!userExists)
             {
-                using var transaction = await _context.Database.BeginTransactionAsync();
-
-                // Validate categories exist
-                var categoryIds = request.CategoryAllocations.Select(ca => ca.CategoryId).ToList();
-                var existingCategories = await _context.Categories
-                    .Where(c => categoryIds.Contains(c.Id))
-                    .ToListAsync();
-
-                if (existingCategories.Count != categoryIds.Count)
+                return BadRequest(new { Error = $"User with ID {userId} does not exist" });
+            }
+            
+            // Get all available categories
+            var availableCategories = _context.Categories.ToList();
+            var availableCategoryIds = availableCategories.Select(c => c.Id).ToList();
+            
+            // Check if all category IDs in the request exist
+            var requestedCategoryIds = createBudgetDto.CategoryAllocations.Select(ca => ca.CategoryId).ToList();
+            var invalidCategoryIds = requestedCategoryIds.Where(id => !availableCategoryIds.Contains(id)).ToList();
+            
+            if (invalidCategoryIds.Any())
+            {
+                return BadRequest(new
                 {
-                    return BadRequest(ApiResponseDto<BudgetResponseDto>.ErrorResponse("One or more categories do not exist"));
-                }
-
-                // Calculate total budget amount
-                var totalBudgetAmount = request.CategoryAllocations.Sum(ca => ca.AllocatedAmount);
-
-                // Create budget
-                var budget = new Budget
+                    Error = "Invalid category IDs in request",
+                    InvalidCategoryIds = invalidCategoryIds,
+                    AvailableCategoryIds = availableCategoryIds,
+                    AvailableCategories = availableCategories.Select(c => new { c.Id, c.CategoryName, c.Type })
+                });
+            }
+            
+            return Ok(new
+            {
+                Message = "Budget request is valid",
+                UserId = userId,
+                BudgetName = createBudgetDto.BudgetName,
+                BudgetType = createBudgetDto.BudgetType,
+                StartDate = createBudgetDto.StartDate,
+                CategoryAllocations = createBudgetDto.CategoryAllocations.Select(ca => new
                 {
-                    UserId = userId,
-                    BudgetName = request.BudgetName,
-                    BudgetType = request.BudgetType,
-                    StartDate = request.StartDate.Date,
-                    EndDate = Budget.CalculateEndDate(request.StartDate.Date, request.BudgetType),
-                    TotalBudgetAmount = totalBudgetAmount,
-                    Description = request.Description,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                _context.Budgets.Add(budget);
-                await _context.SaveChangesAsync();
-
-                // Create budget categories
-                var budgetCategories = request.CategoryAllocations.Select(ca => new BudgetCategory
-                {
-                    BudgetId = budget.BudgetId,
                     CategoryId = ca.CategoryId,
-                    AllocatedAmount = ca.AllocatedAmount,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                }).ToList();
-
-                _context.BudgetCategories.AddRange(budgetCategories);
-                await _context.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-
-                // Return created budget
-                var budgetDto = new BudgetResponseDto
-                {
-                    BudgetId = budget.BudgetId,
-                    UserId = budget.UserId,
-                    BudgetName = budget.BudgetName,
-                    BudgetType = budget.BudgetType,
-                    StartDate = budget.StartDate,
-                    EndDate = budget.EndDate,
-                    TotalBudgetAmount = budget.TotalBudgetAmount,
-                    TotalSpentAmount = budget.TotalSpentAmount,
-                    RemainingAmount = budget.RemainingAmount,
-                    ProgressPercentage = budget.ProgressPercentage,
-                    Status = budget.Status,
-                    Description = budget.Description,
-                    CreatedAt = budget.CreatedAt,
-                    UpdatedAt = budget.UpdatedAt,
-                    Categories = budgetCategories.Select(bc => new BudgetCategoryResponseDto
-                    {
-                        BudgetCategoryId = bc.BudgetCategoryId,
-                        CategoryId = bc.CategoryId,
-                        CategoryName = existingCategories.First(c => c.Id == bc.CategoryId).CategoryName,
-                        AllocatedAmount = bc.AllocatedAmount,
-                        SpentAmount = bc.SpentAmount,
-                        RemainingAmount = bc.RemainingAmount,
-                        CreatedAt = bc.CreatedAt,
-                        UpdatedAt = bc.UpdatedAt
-                    }).ToList()
-                };
-
-                return CreatedAtAction(nameof(GetBudgetDetails), new { budgetId = budget.BudgetId },
-                    ApiResponseDto<BudgetResponseDto>.SuccessResponse(budgetDto, "Budget created successfully"));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating budget for user {UserId}", userId);
-                return StatusCode(500, ApiResponseDto<BudgetResponseDto>.ErrorResponse("An error occurred while creating the budget"));
-            }
+                    CategoryName = availableCategories.First(c => c.Id == ca.CategoryId).CategoryName,
+                    CategoryType = availableCategories.First(c => c.Id == ca.CategoryId).Type,
+                    AllocatedAmount = ca.AllocatedAmount
+                }),
+                TotalAmount = createBudgetDto.CategoryAllocations.Sum(ca => ca.AllocatedAmount)
+            });
         }
 
-        // PUT: api/Budget/{budgetId}
-        [HttpPut("{budgetId}")]
-        public async Task<ActionResult<ApiResponseDto<BudgetResponseDto>>> UpdateBudget(int budgetId, UpdateBudgetRequestDto request)
+        // POST: api/Budget/transaction-impact
+        [HttpPost("transaction-impact")]
+        public async Task<IActionResult> RecordTransactionImpact([FromBody] TransactionImpactDto impactDto)
         {
-            try
-            {
-                var budget = await _context.Budgets
-                    .Include(b => b.BudgetCategories)
-                    .ThenInclude(bc => bc.Category)
-                    .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
+            await _budgetService.RecordTransactionImpactAsync(
+                impactDto.TransactionId,
+                impactDto.BudgetId,
+                impactDto.CategoryId,
+                impactDto.Amount);
 
-                if (budget == null)
-                {
-                    return NotFound(ApiResponseDto<BudgetResponseDto>.ErrorResponse("Budget not found"));
-                }
-
-                using var transaction = await _context.Database.BeginTransactionAsync();
-
-                // Update budget properties
-                if (!string.IsNullOrEmpty(request.BudgetName))
-                    budget.BudgetName = request.BudgetName;
-
-                if (!string.IsNullOrEmpty(request.Description))
-                    budget.Description = request.Description;
-
-                if (!string.IsNullOrEmpty(request.Status))
-                    budget.Status = request.Status;
-
-                // Update category allocations if provided
-                if (request.CategoryAllocations != null && request.CategoryAllocations.Any())
-                {
-                    // Remove existing category allocations
-                    _context.BudgetCategories.RemoveRange(budget.BudgetCategories);
-
-                    // Add new category allocations
-                    var newBudgetCategories = request.CategoryAllocations.Select(ca => new BudgetCategory
-                    {
-                        BudgetId = budget.BudgetId,
-                        CategoryId = ca.CategoryId,
-                        AllocatedAmount = ca.AllocatedAmount,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    }).ToList();
-
-                    _context.BudgetCategories.AddRange(newBudgetCategories);
-
-                    // Recalculate total budget amount
-                    budget.TotalBudgetAmount = request.CategoryAllocations.Sum(ca => ca.AllocatedAmount);
-                    budget.BudgetCategories = newBudgetCategories;
-                }
-
-                budget.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                // Return updated budget
-                var budgetDto = new BudgetResponseDto
-                {
-                    BudgetId = budget.BudgetId,
-                    UserId = budget.UserId,
-                    BudgetName = budget.BudgetName,
-                    BudgetType = budget.BudgetType,
-                    StartDate = budget.StartDate,
-                    EndDate = budget.EndDate,
-                    TotalBudgetAmount = budget.TotalBudgetAmount,
-                    TotalSpentAmount = budget.TotalSpentAmount,
-                    RemainingAmount = budget.RemainingAmount,
-                    ProgressPercentage = budget.ProgressPercentage,
-                    Status = budget.Status,
-                    Description = budget.Description,
-                    CreatedAt = budget.CreatedAt,
-                    UpdatedAt = budget.UpdatedAt,
-                    Categories = budget.BudgetCategories.Select(bc => new BudgetCategoryResponseDto
-                    {
-                        BudgetCategoryId = bc.BudgetCategoryId,
-                        CategoryId = bc.CategoryId,
-                        CategoryName = bc.Category.CategoryName,
-                        AllocatedAmount = bc.AllocatedAmount,
-                        SpentAmount = bc.SpentAmount,
-                        RemainingAmount = bc.RemainingAmount,
-                        CreatedAt = bc.CreatedAt,
-                        UpdatedAt = bc.UpdatedAt
-                    }).ToList()
-                };
-
-                return Ok(ApiResponseDto<BudgetResponseDto>.SuccessResponse(budgetDto, "Budget updated successfully"));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating budget {BudgetId}", budgetId);
-                return StatusCode(500, ApiResponseDto<BudgetResponseDto>.ErrorResponse("An error occurred while updating the budget"));
-            }
-        }
-
-        // DELETE: api/Budget/{budgetId}
-        [HttpDelete("{budgetId}")]
-        public async Task<ActionResult<ApiResponseDto<object>>> DeleteBudget(int budgetId)
-        {
-            try
-            {
-                var budget = await _context.Budgets
-                    .Include(b => b.BudgetCategories)
-                    .Include(b => b.TransactionBudgetImpacts)
-                    .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
-
-                if (budget == null)
-                {
-                    return NotFound(ApiResponseDto<object>.ErrorResponse("Budget not found"));
-                }
-
-                using var transaction = await _context.Database.BeginTransactionAsync();
-
-                // Remove related data
-                _context.TransactionBudgetImpacts.RemoveRange(budget.TransactionBudgetImpacts);
-                _context.BudgetCategories.RemoveRange(budget.BudgetCategories);
-                _context.Budgets.Remove(budget);
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return Ok(ApiResponseDto<object>.SuccessResponse(null, "Budget deleted successfully"));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting budget {BudgetId}", budgetId);
-                return StatusCode(500, ApiResponseDto<object>.ErrorResponse("An error occurred while deleting the budget"));
-            }
-        }
-
-        // GET: api/Budget/user/{userId}/active
-        [HttpGet("user/{userId}/active")]
-        public async Task<ActionResult<ApiResponseDto<List<BudgetSummaryDto>>>> GetActiveBudgets(int userId)
-        {
-            try
-            {
-                var currentDate = DateTime.UtcNow.Date;
-                var activeBudgets = await _context.Budgets
-                    .Where(b => b.UserId == userId &&
-                               b.Status == "Active" &&
-                               b.StartDate <= currentDate &&
-                               b.EndDate >= currentDate)
-                    .Select(b => new BudgetSummaryDto
-                    {
-                        BudgetId = b.BudgetId,
-                        BudgetName = b.BudgetName,
-                        BudgetType = b.BudgetType,
-                        StartDate = b.StartDate,
-                        EndDate = b.EndDate,
-                        TotalBudgetAmount = b.TotalBudgetAmount,
-                        TotalSpentAmount = b.TotalSpentAmount,
-                        RemainingAmount = b.RemainingAmount,
-                        ProgressPercentage = b.ProgressPercentage,
-                        Status = b.Status
-                    })
-                    .ToListAsync();
-
-                return Ok(ApiResponseDto<List<BudgetSummaryDto>>.SuccessResponse(activeBudgets));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving active budgets for user {UserId}", userId);
-                return StatusCode(500, ApiResponseDto<List<BudgetSummaryDto>>.ErrorResponse("An error occurred while retrieving active budgets"));
-            }
+            return NoContent();
         }
     }
-}
+
+    public class TransactionImpactDto
+    {
+        public int TransactionId { get; set; }
+        public int BudgetId { get; set; }
+        public int CategoryId { get; set; }
+        public decimal Amount { get; set; }
+    }
+} 

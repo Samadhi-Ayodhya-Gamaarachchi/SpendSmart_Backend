@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System;
 
 namespace SpendSmart_Backend.Models
 {
@@ -12,6 +13,8 @@ namespace SpendSmart_Backend.Models
         public string? LastName { get; set; }
         public string Email { get; set; }
         public string Currency { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
         public ICollection<Transaction> Transactions { get; set; }
         public ICollection<Report> Reports { get; set; }
         public ICollection<Goal> Goals { get; set; }
@@ -19,6 +22,5 @@ namespace SpendSmart_Backend.Models
         public ICollection<UserAdmin> UserAdmins { get; set; }
         public ICollection<UserAdmin> ManagedUsers { get; set; }
         public ICollection<SavingRecord> SavingRecords { get; set; }
-
     }
 }

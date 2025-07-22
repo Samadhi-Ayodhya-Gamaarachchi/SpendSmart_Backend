@@ -12,8 +12,8 @@ using SpendSmart_Backend.Data;
 namespace SpendSmart_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250720021502_InitialCreateDatabase")]
-    partial class InitialCreateDatabase
+    [Migration("20250721181328_AddTransactionAdditionalFields")]
+    partial class AddTransactionAdditionalFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -174,6 +174,14 @@ namespace SpendSmart_Backend.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -377,12 +385,28 @@ namespace SpendSmart_Backend.Migrations
                     b.Property<bool>("IsRecurring")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("MerchantName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ReceiptUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<DateTime?>("RecurringEndDate")
                         .HasColumnType("date");
 
                     b.Property<string>("RecurringFrequency")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("date");
@@ -416,11 +440,11 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.TransactionBudgetImpact", b =>
                 {
-                    b.Property<int>("ImpactId")
+                    b.Property<int>("TransactionBudgetImpactId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImpactId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionBudgetImpactId"));
 
                     b.Property<int>("BudgetId")
                         .HasColumnType("int");
@@ -438,7 +462,7 @@ namespace SpendSmart_Backend.Migrations
                     b.Property<int>("TransactionId")
                         .HasColumnType("int");
 
-                    b.HasKey("ImpactId");
+                    b.HasKey("TransactionBudgetImpactId");
 
                     b.HasIndex("BudgetId")
                         .HasDatabaseName("IX_TransactionBudgetImpact_BudgetId");
@@ -459,6 +483,9 @@ namespace SpendSmart_Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -476,6 +503,9 @@ namespace SpendSmart_Backend.Migrations
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserName")
                         .IsRequired()

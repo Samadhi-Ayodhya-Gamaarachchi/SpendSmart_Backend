@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpendSmart_Backend.Data;
 
@@ -11,9 +12,11 @@ using SpendSmart_Backend.Data;
 namespace SpendSmart_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250721063424_AddCategoryIconAndColor")]
+    partial class AddCategoryIconAndColor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -382,28 +385,12 @@ namespace SpendSmart_Backend.Migrations
                     b.Property<bool>("IsRecurring")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Location")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("MerchantName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ReceiptUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<DateTime?>("RecurringEndDate")
                         .HasColumnType("date");
 
                     b.Property<string>("RecurringFrequency")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Tags")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("date");
@@ -437,11 +424,11 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.TransactionBudgetImpact", b =>
                 {
-                    b.Property<int>("TransactionBudgetImpactId")
+                    b.Property<int>("ImpactId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionBudgetImpactId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImpactId"));
 
                     b.Property<int>("BudgetId")
                         .HasColumnType("int");
@@ -459,7 +446,7 @@ namespace SpendSmart_Backend.Migrations
                     b.Property<int>("TransactionId")
                         .HasColumnType("int");
 
-                    b.HasKey("TransactionBudgetImpactId");
+                    b.HasKey("ImpactId");
 
                     b.HasIndex("BudgetId")
                         .HasDatabaseName("IX_TransactionBudgetImpact_BudgetId");
@@ -480,9 +467,6 @@ namespace SpendSmart_Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -500,9 +484,6 @@ namespace SpendSmart_Backend.Migrations
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserName")
                         .IsRequired()
