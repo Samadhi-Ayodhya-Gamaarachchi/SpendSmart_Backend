@@ -15,7 +15,7 @@ namespace SpendSmart_Backend.Services
             _context = context;
         }
 
-        public async Task<Transaction> CreateTransactionAsync(TransactionDto dto)
+        public async Task<Transaction> CreateTransactionAsync(int userId, TransactionDto dto)
         {
             var transaction = new Transaction
             {
@@ -24,7 +24,7 @@ namespace SpendSmart_Backend.Services
                 Amount = dto.Amount,
                 Date = dto.Date,
                 Description = dto.Description,
-                UserId = dto.UserId,
+                UserId = userId,
             };
             _context.Transactions.Add(transaction);
             await _context.SaveChangesAsync();
@@ -32,6 +32,7 @@ namespace SpendSmart_Backend.Services
         }
 
         public async Task<List<TransactionViewDto>> GetTransactionAsync(
+            int userId,
             string? type = null,
             string? category = null,
             DateTime? date = null,
@@ -41,6 +42,7 @@ namespace SpendSmart_Backend.Services
         {
             var transactions = _context.Transactions
                 .Include(t => t.Category)
+                .Where(t => t.UserId == userId)
                 .OrderByDescending(t => t.Date)
                 .AsQueryable();
 
@@ -102,9 +104,9 @@ namespace SpendSmart_Backend.Services
             return result;
         }
 
-        public async Task<bool> DeleteTransactionAsync(int transactionId)
+        public async Task<bool> DeleteTransactionAsync(int userId, int transactionId)
         {
-            var transaction = await _context.Transactions.FindAsync(transactionId);
+            var transaction = await _context.Transactions.FirstOrDefaultAsync(t => t.UserId == userId && t.Id == transactionId);
             if (transaction == null)
                 return false;
             _context.Transactions.Remove(transaction);
