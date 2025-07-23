@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SpendSmart_Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigratin : Migration
+    public partial class initialMigrationInLogin : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -52,7 +52,6 @@ namespace SpendSmart_Backend.Migrations
                     UserName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Currency = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ResetToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ResetTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsEmailVerified = table.Column<bool>(type: "bit", nullable: false),

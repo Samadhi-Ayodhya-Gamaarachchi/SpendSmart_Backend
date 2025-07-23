@@ -9,7 +9,6 @@ namespace SpendSmart_Backend.Models
         public string UserName { get; set; }
         public string Password { get; set; }
         public string Email { get; set; }
-        public string Currency { get; set; }
         public ICollection<Transaction> Transactions { get; set; }
         public ICollection<Report> Reports { get; set; }
         public ICollection<Goal> Goals { get; set; }

@@ -12,8 +12,8 @@ using SpendSmart_Backend.Data;
 namespace SpendSmart_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250720114743_InitialMigratin")]
-    partial class InitialMigratin
+    [Migration("20250723064633_initialMigrationInLogin")]
+    partial class initialMigrationInLogin
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -229,10 +229,6 @@ namespace SpendSmart_Backend.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .IsRequired()
