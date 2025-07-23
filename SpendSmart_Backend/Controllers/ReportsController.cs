@@ -5,6 +5,25 @@ using SpendSmart_Backend.DTOs;
 
 namespace SpendSmart_Backend.Controllers
 {
+    // Centralized User Configuration
+    public static class UserConfiguration
+    {
+        // Change this value to update the default userId throughout the backend
+        public static int DefaultUserId { get; set; } = 1;
+
+        // Helper method to get the current default user ID
+        public static int GetDefaultUserId()
+        {
+            return DefaultUserId;
+        }
+
+        // Method to update the default user ID if needed
+        public static void SetDefaultUserId(int newUserId)
+        {
+            DefaultUserId = newUserId;
+        }
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     public class ReportsController : ControllerBase
@@ -36,7 +55,7 @@ namespace SpendSmart_Backend.Controllers
                     return BadRequest(new { message = "StartDate cannot be after EndDate." });
 
                 // For testing without auth, use default userId if not provided
-                var userId = request.UserId > 0 ? request.UserId : 1;
+                var userId = request.UserId > 0 ? request.UserId : UserConfiguration.GetDefaultUserId();
 
                 // 🔍 Get transactions for the date range
                 var transactions = await _context.Transactions
@@ -368,7 +387,7 @@ namespace SpendSmart_Backend.Controllers
                 }
 
                 // Check if sample data already exists
-                var existingTransactions = await _context.Transactions.Where(t => t.UserId == 1).CountAsync();
+                var existingTransactions = await _context.Transactions.Where(t => t.UserId == UserConfiguration.GetDefaultUserId()).CountAsync();
                 if (existingTransactions > 0)
                 {
                     return Ok(new { message = $"Sample data already exists ({existingTransactions} transactions)" });
