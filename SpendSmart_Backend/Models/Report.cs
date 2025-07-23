@@ -27,6 +27,7 @@ namespace SpendSmart_Backend.Models
         public DateTime EndDate { get; set; }
 
         [Required]
+        [MaxLength(500)]
         public string FirebaseUrl { get; set; } = string.Empty;
 
         [MaxLength(200)]
@@ -34,6 +35,19 @@ namespace SpendSmart_Backend.Models
 
         [Required]
         public int UserId { get; set; }
+
+        // Additional metadata columns for better tracking
+        public long? FileSizeBytes { get; set; }
+
+        [MaxLength(100)]
+        public string? FileName { get; set; }
+
+        public DateTime? LastAccessed { get; set; }
+
+        public int AccessCount { get; set; } = 0;
+
+        [MaxLength(50)]
+        public string Status { get; set; } = "Active"; // Active, Archived, Deleted
 
         [ForeignKey("UserId")]
         public User? User { get; set; }

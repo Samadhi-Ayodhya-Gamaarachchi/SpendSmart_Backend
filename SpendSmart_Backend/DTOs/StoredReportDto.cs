@@ -26,5 +26,11 @@ namespace SpendSmart_Backend.DTOs
 
         [Required]
         public int UserId { get; set; }
+
+        // Additional metadata fields
+        public long? FileSizeBytes { get; set; }
+
+        [MaxLength(100)]
+        public string? FileName { get; set; }
     }
 }

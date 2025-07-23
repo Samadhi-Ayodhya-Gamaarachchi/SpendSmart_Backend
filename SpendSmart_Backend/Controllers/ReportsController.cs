@@ -247,7 +247,7 @@ namespace SpendSmart_Backend.Controllers
                 _logger.LogInformation($"Retrieving stored reports for user {userId}");
 
                 var reports = await _context.Reports
-                    .Where(r => r.UserId == userId)
+                    .Where(r => r.UserId == userId && r.Status == "Active")
                     .OrderByDescending(r => r.DateGenerated)
                     .Select(r => new
                     {
@@ -259,7 +259,13 @@ namespace SpendSmart_Backend.Controllers
                         r.EndDate,
                         r.FirebaseUrl,
                         r.Description,
-                        DateRange = $"{r.StartDate:yyyy-MM-dd} to {r.EndDate:yyyy-MM-dd}"
+                        r.FileSizeBytes,
+                        r.FileName,
+                        r.AccessCount,
+                        r.LastAccessed,
+                        r.Status,
+                        DateRange = $"{r.StartDate:yyyy-MM-dd} to {r.EndDate:yyyy-MM-dd}",
+                        FileSizeMB = r.FileSizeBytes.HasValue ? Math.Round((double)r.FileSizeBytes.Value / 1024 / 1024, 2) : (double?)null
                     })
                     .ToListAsync();
 
@@ -279,7 +285,7 @@ namespace SpendSmart_Backend.Controllers
         {
             try
             {
-                _logger.LogInformation($"Storing report for user {reportDto.UserId}");
+                _logger.LogInformation($"Storing report for user {reportDto.UserId}: {reportDto.ReportName}");
 
                 var report = new Models.Report
                 {
@@ -290,7 +296,12 @@ namespace SpendSmart_Backend.Controllers
                     EndDate = reportDto.EndDate,
                     FirebaseUrl = reportDto.FirebaseUrl,
                     Description = reportDto.Description,
-                    UserId = reportDto.UserId
+                    UserId = reportDto.UserId,
+                    // Enhanced metadata
+                    FileSizeBytes = reportDto.FileSizeBytes,
+                    FileName = reportDto.FileName,
+                    AccessCount = 0,
+                    Status = "Active"
                 };
 
                 _context.Reports.Add(report);
@@ -303,7 +314,9 @@ namespace SpendSmart_Backend.Controllers
                     id = report.Id,
                     message = "Report stored successfully",
                     reportName = report.ReportName,
-                    dateGenerated = report.DateGenerated
+                    dateGenerated = report.DateGenerated,
+                    fileSizeBytes = report.FileSizeBytes,
+                    fileName = report.FileName
                 });
             }
             catch (Exception ex)
