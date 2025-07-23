@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Services;
+
 using System.Text;
 using System.Text.Json;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,20 @@ builder.Services.AddSwaggerGen();
 // 3. Database Configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SpendSmartDb")));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReact", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Your React dev server
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
+builder.Services.AddHostedService<RecurringTransactionBackgroundService>();
 
 
 builder.Services.AddCors(options =>
@@ -74,7 +90,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// 8. Swagger UI in Development
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -90,6 +106,10 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
+
+app.UseCors("AllowReact");
+
+
 app.UseAuthorization();
 
 app.MapControllers();
