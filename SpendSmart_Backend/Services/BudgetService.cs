@@ -97,40 +97,44 @@ namespace SpendSmart_Backend.Services
             if (budget == null)
                 return new List<TransactionDetailsDto>();
 
-            var transactions = await _context.TransactionBudgetImpacts
-                .Where(tbi => tbi.BudgetId == budgetId)
-                .Include(tbi => tbi.Transaction)
-                .ThenInclude(t => t.Category)
-                .Select(tbi => new TransactionDetailsDto
+            // Get transactions that fall within the budget period and belong to the same user
+            // This provides a more realistic view of expense transactions related to the budget
+            var transactions = await _context.Transactions
+                .Where(t => t.UserId == budget.UserId && 
+                           t.TransactionType == "Expense" &&
+                           t.TransactionDate >= budget.StartDate && 
+                           t.TransactionDate <= budget.EndDate)
+                .Include(t => t.Category)
+                .OrderByDescending(t => t.TransactionDate)
+                .Select(t => new TransactionDetailsDto
                 {
-                    TransactionId = tbi.TransactionId,
-                    TransactionType = tbi.Transaction.TransactionType,
-                    CategoryId = tbi.Transaction.CategoryId,
-                    CategoryName = tbi.Transaction.Category.CategoryName,
-                    Amount = tbi.Transaction.Amount,
-                    TransactionDate = tbi.Transaction.TransactionDate.ToString("yyyy-MM-dd"),
-                    Description = tbi.Transaction.Description,
-                    MerchantName = tbi.Transaction.MerchantName,
-                    Location = tbi.Transaction.Location,
-                    Tags = tbi.Transaction.Tags != null ? tbi.Transaction.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>(),
-                    ReceiptUrl = tbi.Transaction.ReceiptUrl,
-                    IsRecurring = tbi.Transaction.IsRecurring,
-                    RecurringFrequency = tbi.Transaction.RecurringFrequency,
-                    RecurringEndDate = tbi.Transaction.RecurringEndDate.HasValue ? tbi.Transaction.RecurringEndDate.Value.ToString("yyyy-MM-dd") : null,
+                    TransactionId = t.TransactionId,
+                    TransactionType = t.TransactionType,
+                    CategoryId = t.CategoryId,
+                    CategoryName = t.Category.CategoryName,
+                    Amount = t.Amount,
+                    TransactionDate = t.TransactionDate.ToString("yyyy-MM-dd"),
+                    Description = t.Description,
+                    MerchantName = t.MerchantName,
+                    Location = t.Location,
+                    Tags = t.Tags != null ? t.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>(),
+                    ReceiptUrl = t.ReceiptUrl,
+                    IsRecurring = t.IsRecurring,
+                    RecurringFrequency = t.RecurringFrequency,
+                    RecurringEndDate = t.RecurringEndDate.HasValue ? t.RecurringEndDate.Value.ToString("yyyy-MM-dd") : null,
                     BudgetImpacts = new List<BudgetImpactDto>
                     {
                         new BudgetImpactDto
                         {
-                            BudgetId = tbi.BudgetId,
+                            BudgetId = budgetId,
                             BudgetName = budget.BudgetName,
-                            CategoryId = tbi.CategoryId,
-                            CategoryName = tbi.Transaction.Category.CategoryName,
-                            ImpactAmount = tbi.ImpactAmount,
+                            CategoryId = t.CategoryId,
+                            CategoryName = t.Category.CategoryName,
+                            ImpactAmount = t.Amount,
                             ImpactType = "Deduction"
                         }
                     }
                 })
-                .OrderByDescending(t => t.TransactionDate)
                 .ToListAsync();
 
             return transactions;
