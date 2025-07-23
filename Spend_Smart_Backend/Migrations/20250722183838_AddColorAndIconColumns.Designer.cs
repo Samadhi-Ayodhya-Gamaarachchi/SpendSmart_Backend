@@ -12,8 +12,8 @@ using SpendSmart_Backend.Data;
 namespace SpendSmart_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250721181328_AddTransactionAdditionalFields")]
-    partial class AddTransactionAdditionalFields
+    [Migration("20250722183838_AddColorAndIconColumns")]
+    partial class AddColorAndIconColumns
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
