@@ -35,7 +35,6 @@ namespace SpendSmart_Backend.Services
                 UserName = dto.UserName,
                 Email = dto.Email,
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Currency = dto.Currency,
                 IsEmailVerified = false,
                 EmailVerificationToken = Guid.NewGuid().ToString() // ✅ moved here
             };

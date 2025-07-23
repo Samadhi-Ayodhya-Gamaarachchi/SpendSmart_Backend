@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SpendSmart_Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigratin : Migration
+    public partial class newMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -52,7 +52,6 @@ namespace SpendSmart_Backend.Migrations
                     UserName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Currency = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ResetToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ResetTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsEmailVerified = table.Column<bool>(type: "bit", nullable: false),
@@ -124,11 +123,19 @@ namespace SpendSmart_Backend.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Format = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ReportName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Format = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     DateGenerated = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false)
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    FirebaseUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    FileSizeBytes = table.Column<long>(type: "bigint", nullable: true),
+                    FileName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    LastAccessed = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AccessCount = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
