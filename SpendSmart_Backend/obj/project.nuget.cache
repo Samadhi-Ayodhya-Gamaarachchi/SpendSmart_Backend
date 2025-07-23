@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "RvpS1kt/XEw=",
+  "dgSpecHash": "dJCFDLe+kgM=",
   "success": true,
-  "projectFilePath": "E:\\L2S2\\Software project code\\SpendSmart_Backend\\backend\\SpendSmart_Backend.csproj",
+  "projectFilePath": "E:\\L2S2\\Software project code\\SpendSmart_Backend\\SpendSmart_Backend\\SpendSmart_Backend.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\User\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\User\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

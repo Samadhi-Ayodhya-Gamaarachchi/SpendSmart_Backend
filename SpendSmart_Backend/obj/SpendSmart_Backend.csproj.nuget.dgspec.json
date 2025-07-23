@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\L2S2\\Software project code\\SpendSmart_Backend\\backend\\SpendSmart_Backend.csproj": {}
+    "E:\\L2S2\\Software project code\\SpendSmart_Backend\\SpendSmart_Backend\\SpendSmart_Backend.csproj": {}
   },
   "projects": {
-    "E:\\L2S2\\Software project code\\SpendSmart_Backend\\backend\\SpendSmart_Backend.csproj": {
+    "E:\\L2S2\\Software project code\\SpendSmart_Backend\\SpendSmart_Backend\\SpendSmart_Backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\L2S2\\Software project code\\SpendSmart_Backend\\backend\\SpendSmart_Backend.csproj",
+        "projectUniqueName": "E:\\L2S2\\Software project code\\SpendSmart_Backend\\SpendSmart_Backend\\SpendSmart_Backend.csproj",
         "projectName": "SpendSmart_Backend",
-        "projectPath": "E:\\L2S2\\Software project code\\SpendSmart_Backend\\backend\\SpendSmart_Backend.csproj",
+        "projectPath": "E:\\L2S2\\Software project code\\SpendSmart_Backend\\SpendSmart_Backend\\SpendSmart_Backend.csproj",
         "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-        "outputPath": "E:\\L2S2\\Software project code\\SpendSmart_Backend\\backend\\obj\\",
+        "outputPath": "E:\\L2S2\\Software project code\\SpendSmart_Backend\\SpendSmart_Backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
