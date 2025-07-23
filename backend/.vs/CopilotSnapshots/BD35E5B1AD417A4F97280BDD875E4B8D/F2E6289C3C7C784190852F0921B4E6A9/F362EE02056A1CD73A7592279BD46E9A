@@ -1,0 +1,63 @@
+﻿# Fix for Foreign Key Constraint Error in Goals Controller
+
+## Problem
+The `CreateGoal` method in the `GoalsController` was throwing a foreign key constraint violation error when trying to create a goal with a `UserId` that doesn't exist in the database.
+
+Error: "The INSERT statement conflicted with the FOREIGN KEY constraint 'FK_Goals_Users_UserId'"
+
+## Solution
+1. **Added User Validation**: Modified the `CreateGoal` method to check if the specified user exists before attempting to create the goal.
+2. **Added Date Validation**: Added validation to ensure the end date is after the start date.
+3. **Improved Error Handling**: Added better error messages and logging.
+4. **Database Seeder**: Created a `DatabaseSeeder` service to populate the database with sample users and categories.
+5. **User Management**: Created a `UsersController` to manage users and provide endpoints for user operations.
+
+## Changes Made
+
+### Controllers/GoalsController.cs
+- Added user existence validation in `CreateGoal` method
+- Added date validation (end date > start date)
+- Added similar validation to `UpdateGoal` method
+- Added `GetGoalsByUserId` endpoint to retrieve goals for a specific user
+
+### Controllers/UsersController.cs (New)
+- Created complete user management controller
+- Added endpoints for creating, retrieving, and checking user existence
+- Added validation to prevent duplicate usernames/emails
+
+### Data/ApplicationDbContext.cs
+- Added explicit Goal-User relationship configuration
+- Set delete behavior to restrict to prevent cascading deletes
+
+### Services/DatabaseSeeder.cs (New)
+- Created seeder service to populate initial data
+- Adds sample users and categories to the database
+- Ensures the database has test data for development
+
+### Program.cs
+- Registered `DatabaseSeeder` service
+- Added automatic database seeding on application startup
+
+## API Endpoints Added
+
+### Users Controller
+- `GET /api/Users` - Get all users
+- `GET /api/Users/{id}` - Get user by ID
+- `GET /api/Users/{id}/exists` - Check if user exists
+- `POST /api/Users` - Create new user
+
+### Goals Controller (Enhanced)
+- `GET /api/Goals/user/{userId}` - Get goals by user ID
+
+## Usage
+1. Use the Users endpoints to create users or check existing users
+2. Use the returned user IDs when creating goals
+3. The system will now validate that the user exists before creating a goal
+4. Proper error messages will be returned if validation fails
+
+## Sample Users Created by Seeder
+- john_doe (ID will be auto-generated)
+- jane_smith (ID will be auto-generated)
+- test_user (ID will be auto-generated)
+
+Use these user IDs when testing goal creation.

@@ -1,0 +1,12 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "SpendSmartDb": "Server=DESKTOP-M5SRP8D;Database=SpendSmartNew;Trusted_Connection=True;"
+  },
+  "AllowedHosts": "*"
+}

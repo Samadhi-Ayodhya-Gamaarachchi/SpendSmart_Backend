@@ -1,0 +1,17 @@
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpendSmart_Backend.Models
+{
+    public class UserAdmin
+    {
+        public int UserId { get; set; }
+        public int ManagerId { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; } = null!;
+
+        [ForeignKey("ManagerId")]
+        public virtual User Manager { get; set; } = null!;
+    }
+}

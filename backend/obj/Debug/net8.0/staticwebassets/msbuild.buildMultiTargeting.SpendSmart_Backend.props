@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\SpendSmart_Backend.props" />
+</Project>

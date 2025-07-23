@@ -1,0 +1,147 @@
+﻿using Microsoft.EntityFrameworkCore;
+using SpendSmart_Backend.Data;
+using SpendSmart_Backend.Models;
+
+namespace SpendSmart_Backend.Services
+{
+    public class DatabaseSeeder
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<DatabaseSeeder> _logger;
+
+        public DatabaseSeeder(ApplicationDbContext context, ILogger<DatabaseSeeder> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        public async Task<bool> TestConnectionAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Testing database connection...");
+                await _context.Database.CanConnectAsync();
+                _logger.LogInformation("Database connection successful!");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database connection failed: {Message}", ex.Message);
+                return false;
+            }
+        }
+
+        public async Task<bool> EnsureDatabaseCreatedAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Ensuring database is created...");
+                var created = await _context.Database.EnsureCreatedAsync();
+                if (created)
+                {
+                    _logger.LogInformation("Database created successfully!");
+                }
+                else
+                {
+                    _logger.LogInformation("Database already exists.");
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to ensure database creation: {Message}", ex.Message);
+                return false;
+            }
+        }
+
+        public async Task SeedAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Starting database seeding...");
+
+                // Check if data already exists
+                if (await _context.Categories.AnyAsync())
+                {
+                    _logger.LogInformation("Database already contains data. Skipping seeding.");
+                    return;
+                }
+
+                // Seed Categories
+                var categories = new List<Category>
+                {
+                    new Category { Name = "Food & Dining", Description = "Restaurant and grocery expenses" },
+                    new Category { Name = "Transportation", Description = "Car, gas, public transport" },
+                    new Category { Name = "Shopping", Description = "Clothes, electronics, general shopping" },
+                    new Category { Name = "Entertainment", Description = "Movies, games, activities" },
+                    new Category { Name = "Bills & Utilities", Description = "Rent, electricity, water, internet" },
+                    new Category { Name = "Healthcare", Description = "Medical expenses" },
+                    new Category { Name = "Income", Description = "Salary and other income" },
+                    new Category { Name = "Savings", Description = "Money saved" }
+                };
+
+                await _context.Categories.AddRangeAsync(categories);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Categories seeded successfully.");
+
+                // Seed Sample Admin
+                var admin = new Admin
+                {
+                    Name = "System Administrator",
+                    Email = "admin@spendsmart.com",
+                    Password = "admin123" // In production, this should be hashed!
+                };
+
+                await _context.Admins.AddAsync(admin);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Sample admin created successfully.");
+
+                // Seed Sample User
+                var user = new User
+                {
+                    UserName = "demo_user",
+                    Password = "demo123", // In production, this should be hashed!
+                    FirstName = "Demo",
+                    LastName = "User",
+                    Email = "demo@spendsmart.com",
+                    Currency = "USD"
+                };
+
+                await _context.Users.AddAsync(user);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Sample user created successfully.");
+
+                _logger.LogInformation("Database seeding completed successfully!");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database seeding failed: {Message}", ex.Message);
+                throw;
+            }
+        }
+
+        public async Task<Dictionary<string, int>> GetDatabaseStatsAsync()
+        {
+            var stats = new Dictionary<string, int>();
+            
+            try
+            {
+                stats["Users"] = await _context.Users.CountAsync();
+                stats["Admins"] = await _context.Admins.CountAsync();
+                stats["Categories"] = await _context.Categories.CountAsync();
+                stats["Transactions"] = await _context.Transactions.CountAsync();
+                stats["Budgets"] = await _context.Budgets.CountAsync();
+                stats["Goals"] = await _context.Goals.CountAsync();
+                stats["Reports"] = await _context.Reports.CountAsync();
+                
+                _logger.LogInformation("Database statistics retrieved successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve database statistics: {Message}", ex.Message);
+            }
+
+            return stats;
+        }
+    }
+}

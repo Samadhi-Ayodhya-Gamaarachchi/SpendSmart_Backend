@@ -1,0 +1,94 @@
+﻿using SpendSmart_Backend.Data;
+using SpendSmart_Backend.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace SpendSmart_Backend.Services
+{
+    public class DatabaseSeeder
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<DatabaseSeeder> _logger;
+
+        public DatabaseSeeder(ApplicationDbContext context, ILogger<DatabaseSeeder> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        public async Task SeedAsync()
+        {
+            try
+            {
+                // Ensure database is created
+                await _context.Database.EnsureCreatedAsync();
+
+                // Check if we already have users
+                if (await _context.Users.AnyAsync())
+                {
+                    _logger.LogInformation("Database already contains users. Skipping seeding.");
+                    return;
+                }
+
+                _logger.LogInformation("Seeding database with initial data...");
+
+                // Create sample users
+                var users = new List<User>
+                {
+                    new User
+                    {
+                        UserName = "john_doe",
+                        Password = "password123", // In a real app, this should be hashed
+                        FirstName = "John",
+                        LastName = "Doe",
+                        Email = "john.doe@example.com",
+                        Currency = "USD"
+                    },
+                    new User
+                    {
+                        UserName = "jane_smith",
+                        Password = "password123", // In a real app, this should be hashed
+                        FirstName = "Jane",
+                        LastName = "Smith",
+                        Email = "jane.smith@example.com",
+                        Currency = "USD"
+                    },
+                    new User
+                    {
+                        UserName = "test_user",
+                        Password = "password123", // In a real app, this should be hashed
+                        FirstName = "Test",
+                        LastName = "User",
+                        Email = "test.user@example.com",
+                        Currency = "USD"
+                    }
+                };
+
+                _context.Users.AddRange(users);
+                await _context.SaveChangesAsync();
+
+                // Create sample categories
+                var categories = new List<Category>
+                {
+                    new Category { Name = "Food & Dining" },
+                    new Category { Name = "Transportation" },
+                    new Category { Name = "Entertainment" },
+                    new Category { Name = "Bills & Utilities" },
+                    new Category { Name = "Shopping" },
+                    new Category { Name = "Health & Fitness" },
+                    new Category { Name = "Travel" },
+                    new Category { Name = "Education" }
+                };
+
+                _context.Categories.AddRange(categories);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Database seeding completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while seeding the database.");
+                throw;
+            }
+        }
+    }
+}

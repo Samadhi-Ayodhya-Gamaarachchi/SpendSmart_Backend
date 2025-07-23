@@ -1,0 +1,30 @@
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpendSmart_Backend.Models
+{
+    public class Report
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
+        
+        [Required]
+        public string Name { get; set; } = null!;
+        
+        [Required]
+        public string Type { get; set; } = null!;
+        
+        [Required]
+        public string Format { get; set; } = null!;
+        
+        [Required]
+        public DateTime DateGenerated { get; set; }
+        
+        [Required]
+        public int UserId { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; } = null!;
+    }
+}

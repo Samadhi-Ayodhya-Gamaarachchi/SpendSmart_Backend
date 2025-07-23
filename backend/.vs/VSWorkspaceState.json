@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\.config",
+    "\\bin",
+    "\\Controllers",
+    "\\Migrations",
+    "\\Models",
+    "\\NuGet",
+    "\\obj",
+    "\\Properties",
+    "\\Services"
+  ],
+  "PreviewInSolutionExplorer": true
+}
