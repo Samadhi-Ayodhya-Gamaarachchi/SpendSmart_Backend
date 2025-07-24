@@ -263,7 +263,7 @@ namespace SpendSmart_Backend.Controllers
         {
             try
             {
-                _logger.LogInformation($"Retrieving stored reports for user {userId}");
+                _logger.LogInformation($"Retrieving stored reports for user ");
 
                 var reports = await _context.Reports
                     .Where(r => r.UserId == userId && r.Status == "Active")
@@ -288,7 +288,7 @@ namespace SpendSmart_Backend.Controllers
                     })
                     .ToListAsync();
 
-                _logger.LogInformation($"Found {reports.Count} stored reports for user {userId}");
+                _logger.LogInformation($"Found {reports.Count} stored reports for user ");
                 return Ok(reports);
             }
             catch (Exception ex)
@@ -304,7 +304,7 @@ namespace SpendSmart_Backend.Controllers
         {
             try
             {
-                _logger.LogInformation($"Storing report for user {reportDto.UserId}: {reportDto.ReportName}");
+                _logger.LogInformation($"Storing report for user : {reportDto.ReportName}");
 
                 var report = new Models.Report
                 {
@@ -340,7 +340,7 @@ namespace SpendSmart_Backend.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error storing report for user {reportDto.UserId}");
+                _logger.LogError(ex, $"Error storing report for user ");
                 return StatusCode(500, new { message = "Error storing report", error = ex.Message });
             }
         }
