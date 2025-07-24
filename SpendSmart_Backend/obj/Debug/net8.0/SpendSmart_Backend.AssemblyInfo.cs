@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SpendSmart_Backend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+90b1a2bf9676cdde5790b3583864614de1da46f5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c6aa3afaeb04fd169d27fc4ba21a9f2683cedd0")]
 [assembly: System.Reflection.AssemblyProductAttribute("SpendSmart_Backend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SpendSmart_Backend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
