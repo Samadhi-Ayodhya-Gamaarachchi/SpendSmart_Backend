@@ -26,6 +26,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
+builder.Services.AddScoped<IGoalService, GoalService>();
+builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddHostedService<RecurringTransactionBackgroundService>();
 
 var app = builder.Build();
