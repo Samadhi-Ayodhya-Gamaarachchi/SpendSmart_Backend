@@ -94,9 +94,24 @@ namespace SpendSmart_Backend.Services
         public async Task<List<BudgetSummaryDto>> GetUserBudgetsAsync(int userId)
         {
             var budgets = await _context.Budgets
+                .Include(b => b.TransactionBudgetImpacts)
                 .Where(b => b.UserId == userId)
                 .OrderByDescending(b => b.StartDate)
-                .Select(b => new BudgetSummaryDto
+                .ToListAsync();
+
+            var budgetSummaries = budgets.Select(b => {
+                // Calculate total spent amount from transaction impacts (consistent with GetBudgetDetailsAsync)
+                decimal totalActualSpent = b.TransactionBudgetImpacts.Sum(tbi => tbi.ImpactAmount);
+                
+                // Calculate progress percentage based on actual spending (consistent with GetBudgetDetailsAsync)
+                decimal progressPercentage = 0;
+                if (b.TotalBudgetAmount > 0)
+                {
+                    progressPercentage = (totalActualSpent / b.TotalBudgetAmount) * 100;
+                    progressPercentage = Math.Min(progressPercentage, 100); // Cap at 100%
+                }
+
+                return new BudgetSummaryDto
                 {
                     BudgetId = b.BudgetId,
                     BudgetName = b.BudgetName,
@@ -104,14 +119,14 @@ namespace SpendSmart_Backend.Services
                     StartDate = b.StartDate,
                     EndDate = b.EndDate,
                     TotalBudgetAmount = b.TotalBudgetAmount,
-                    TotalSpentAmount = b.TotalSpentAmount,
-                    RemainingAmount = b.TotalBudgetAmount - b.TotalSpentAmount,
-                    ProgressPercentage = b.TotalBudgetAmount > 0 ? Math.Min((b.TotalSpentAmount / b.TotalBudgetAmount) * 100, 100) : 0,
+                    TotalSpentAmount = totalActualSpent, // Use actual spent from impacts
+                    RemainingAmount = b.TotalBudgetAmount - totalActualSpent,
+                    ProgressPercentage = Math.Round(progressPercentage * 10) / 10, // Round to 1 decimal place, same as GetBudgetDetailsAsync
                     Status = b.Status
-                })
-                .ToListAsync();
+                };
+            }).ToList();
 
-            return budgets;
+            return budgetSummaries;
         }
 
         public async Task<List<TransactionDetailsDto>> GetBudgetTransactionsAsync(int budgetId)
