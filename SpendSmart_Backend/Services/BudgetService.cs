@@ -100,9 +100,9 @@ namespace SpendSmart_Backend.Services
             // Get transactions that fall within the budget period and belong to the same user
             // This provides a more realistic view of expense transactions related to the budget
             var transactions = await _context.Transactions
-                .Where(t => t.UserId == budget.UserId && 
+                .Where(t => t.UserId == budget.UserId &&
                            t.TransactionType == "Expense" &&
-                           t.TransactionDate >= budget.StartDate && 
+                           t.TransactionDate >= budget.StartDate &&
                            t.TransactionDate <= budget.EndDate)
                 .Include(t => t.Category)
                 .OrderByDescending(t => t.TransactionDate)
@@ -151,7 +151,7 @@ namespace SpendSmart_Backend.Services
                 return new List<ExpenseBreakdownDto>();
 
             var totalSpent = budget.TotalSpentAmount;
-            
+
             var breakdown = budget.BudgetCategories
                 .Where(bc => bc.SpentAmount > 0)
                 .Select(bc => new ExpenseBreakdownDto
@@ -237,7 +237,7 @@ namespace SpendSmart_Backend.Services
             {
                 throw new ArgumentException($"User with ID {userId} does not exist.");
             }
-            
+
             // Calculate end date based on budget type
             DateTime endDate;
             if (createBudgetDto.BudgetType.ToLower() == "monthly")
@@ -376,10 +376,27 @@ namespace SpendSmart_Backend.Services
 
         public async Task<bool> DeleteBudgetAsync(int budgetId)
         {
-            var budget = await _context.Budgets.FindAsync(budgetId);
+            // Load budget with related entities
+            var budget = await _context.Budgets
+                .Include(b => b.BudgetCategories)
+                .Include(b => b.TransactionBudgetImpacts)
+                .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
             if (budget == null)
                 return false;
 
+            // Remove related TransactionBudgetImpacts
+            if (budget.TransactionBudgetImpacts != null && budget.TransactionBudgetImpacts.Any())
+            {
+                _context.TransactionBudgetImpacts.RemoveRange(budget.TransactionBudgetImpacts);
+            }
+
+            // Remove related BudgetCategories
+            if (budget.BudgetCategories != null && budget.BudgetCategories.Any())
+            {
+                _context.BudgetCategories.RemoveRange(budget.BudgetCategories);
+            }
+
+            // Remove the budget itself
             _context.Budgets.Remove(budget);
             await _context.SaveChangesAsync();
             return true;
@@ -460,4 +477,4 @@ namespace SpendSmart_Backend.Services
             await UpdateBudgetAmountsAsync(budgetId);
         }
     }
-} 
+}
