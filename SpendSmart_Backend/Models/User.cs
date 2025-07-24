@@ -16,8 +16,7 @@ namespace SpendSmart_Backend.Models
         public string? LastName { get; set; }
         [Required]
         public string Email { get; set; }
-        [Required]
-        public string Currency { get; set; }
+
 
         //profile picture settings
         public string? ProfilePictureUrl { get; set; }
