@@ -19,24 +19,33 @@ namespace SpendSmart_Backend.Services
             var budget = await _context.Budgets
                 .Include(b => b.BudgetCategories)
                 .ThenInclude(bc => bc.Category)
+                .Include(b => b.TransactionBudgetImpacts)
                 .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
 
             if (budget == null)
                 return null;
 
+            // Calculate total spent amount from transaction impacts (like backend folder)
+            decimal totalActualSpent = budget.TransactionBudgetImpacts.Sum(tbi => tbi.ImpactAmount);
+
             // Calculate days remaining
             int daysRemaining = (budget.EndDate - DateTime.Today).Days;
             if (daysRemaining < 0) daysRemaining = 0;
 
-            // Calculate progress percentage
+            // Calculate progress percentage based on actual spending
             decimal progressPercentage = 0;
             if (budget.TotalBudgetAmount > 0)
             {
-                progressPercentage = (budget.TotalSpentAmount / budget.TotalBudgetAmount) * 100;
+                progressPercentage = (totalActualSpent / budget.TotalBudgetAmount) * 100;
                 progressPercentage = Math.Min(progressPercentage, 100); // Cap at 100%
             }
 
-            // Map budget categories to DTOs
+            // Calculate spent amounts per category from transaction impacts
+            var categorySpending = budget.TransactionBudgetImpacts
+                .GroupBy(tbi => tbi.CategoryId)
+                .ToDictionary(g => g.Key, g => g.Sum(tbi => tbi.ImpactAmount));
+
+            // Map budget categories to DTOs with actual spending from impacts
             var categoryDtos = budget.BudgetCategories.Select(bc => new BudgetCategoryResponseDto
             {
                 CategoryId = bc.CategoryId,
@@ -44,10 +53,24 @@ namespace SpendSmart_Backend.Services
                 CategoryIcon = bc.Category.Icon,
                 CategoryColor = bc.Category.Color,
                 AllocatedAmount = bc.AllocatedAmount,
-                SpentAmount = bc.SpentAmount,
-                RemainingAmount = bc.AllocatedAmount - bc.SpentAmount,
-                ProgressPercentage = bc.AllocatedAmount > 0 ? Math.Min((bc.SpentAmount / bc.AllocatedAmount) * 100, 100) : 0
+                SpentAmount = categorySpending.GetValueOrDefault(bc.CategoryId, 0),
+                RemainingAmount = bc.AllocatedAmount - categorySpending.GetValueOrDefault(bc.CategoryId, 0),
+                ProgressPercentage = bc.AllocatedAmount > 0 ? Math.Round((categorySpending.GetValueOrDefault(bc.CategoryId, 0) / bc.AllocatedAmount) * 100 * 10) / 10 : 0
             }).ToList();
+
+            // Determine status based on actual spending
+            var actualStatus = budget.Status;
+            if (actualStatus == "Active")
+            {
+                if (DateTime.Today > budget.EndDate)
+                {
+                    actualStatus = "Completed";
+                }
+                else if (totalActualSpent >= budget.TotalBudgetAmount)
+                {
+                    actualStatus = "Exceeded";
+                }
+            }
 
             // Create the budget response DTO
             return new BudgetResponseDto
@@ -58,12 +81,12 @@ namespace SpendSmart_Backend.Services
                 StartDate = budget.StartDate,
                 EndDate = budget.EndDate,
                 TotalBudgetAmount = budget.TotalBudgetAmount,
-                TotalSpentAmount = budget.TotalSpentAmount,
-                RemainingAmount = budget.TotalBudgetAmount - budget.TotalSpentAmount,
+                TotalSpentAmount = totalActualSpent,
+                RemainingAmount = budget.TotalBudgetAmount - totalActualSpent,
                 Description = budget.Description,
-                ProgressPercentage = progressPercentage,
+                ProgressPercentage = Math.Round(progressPercentage * 10) / 10, // Round to 1 decimal place
                 DaysRemaining = daysRemaining,
-                Status = budget.Status,
+                Status = actualStatus,
                 Categories = categoryDtos
             };
         }
@@ -93,51 +116,62 @@ namespace SpendSmart_Backend.Services
 
         public async Task<List<TransactionDetailsDto>> GetBudgetTransactionsAsync(int budgetId)
         {
-            var budget = await _context.Budgets.FindAsync(budgetId);
-            if (budget == null)
-                return new List<TransactionDetailsDto>();
+            try
+            {
+                // Get budget with name for budget impact
+                var budget = await _context.Budgets.FindAsync(budgetId);
+                if (budget == null)
+                    return new List<TransactionDetailsDto>();
 
-            // Get transactions that fall within the budget period and belong to the same user
-            // This provides a more realistic view of expense transactions related to the budget
-            var transactions = await _context.Transactions
-                .Where(t => t.UserId == budget.UserId && 
-                           t.TransactionType == "Expense" &&
-                           t.TransactionDate >= budget.StartDate && 
-                           t.TransactionDate <= budget.EndDate)
-                .Include(t => t.Category)
-                .OrderByDescending(t => t.TransactionDate)
-                .Select(t => new TransactionDetailsDto
+                // Use TransactionBudgetImpacts to get transactions related to this budget (like backend folder)
+                var transactionImpacts = await _context.TransactionBudgetImpacts
+                    .Where(tbi => tbi.BudgetId == budgetId)
+                    .Include(tbi => tbi.Transaction)
+                    .ThenInclude(t => t.Category)
+                    .ToListAsync();
+
+                var transactions = transactionImpacts.Select(tbi => new TransactionDetailsDto
                 {
-                    TransactionId = t.TransactionId,
-                    TransactionType = t.TransactionType,
-                    CategoryId = t.CategoryId,
-                    CategoryName = t.Category.CategoryName,
-                    Amount = t.Amount,
-                    TransactionDate = t.TransactionDate.ToString("yyyy-MM-dd"),
-                    Description = t.Description,
-                    MerchantName = t.MerchantName,
-                    Location = t.Location,
-                    Tags = t.Tags != null ? t.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>(),
-                    ReceiptUrl = t.ReceiptUrl,
-                    IsRecurring = t.IsRecurring,
-                    RecurringFrequency = t.RecurringFrequency,
-                    RecurringEndDate = t.RecurringEndDate.HasValue ? t.RecurringEndDate.Value.ToString("yyyy-MM-dd") : null,
+                    TransactionId = tbi.TransactionId,
+                    TransactionType = tbi.Transaction?.TransactionType ?? "Expense",
+                    CategoryId = tbi.Transaction?.CategoryId ?? tbi.CategoryId,
+                    CategoryName = tbi.Transaction?.Category?.CategoryName ?? "Unknown",
+                    Amount = tbi.Transaction?.Amount ?? tbi.ImpactAmount,
+                    TransactionDate = tbi.Transaction?.TransactionDate.ToString("yyyy-MM-dd") ?? DateTime.Now.ToString("yyyy-MM-dd"),
+                    Description = tbi.Transaction?.Description ?? "",
+                    MerchantName = tbi.Transaction?.MerchantName ?? "",
+                    Location = tbi.Transaction?.Location ?? "",
+                    Tags = tbi.Transaction?.Tags != null ? tbi.Transaction.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries) : Array.Empty<string>(),
+                    ReceiptUrl = tbi.Transaction?.ReceiptUrl ?? "",
+                    IsRecurring = tbi.Transaction?.IsRecurring ?? false,
+                    RecurringFrequency = tbi.Transaction?.RecurringFrequency ?? "",
+                    RecurringEndDate = tbi.Transaction?.RecurringEndDate?.ToString("yyyy-MM-dd"),
+                    CategoryIcon = tbi.Transaction?.Category?.Icon ?? "💰",
+                    CategoryColor = tbi.Transaction?.Category?.Color ?? "#666666",
                     BudgetImpacts = new List<BudgetImpactDto>
                     {
                         new BudgetImpactDto
                         {
-                            BudgetId = budgetId,
-                            BudgetName = budget.BudgetName,
-                            CategoryId = t.CategoryId,
-                            CategoryName = t.Category.CategoryName,
-                            ImpactAmount = t.Amount,
+                            BudgetId = tbi.BudgetId,
+                            BudgetName = budget.BudgetName ?? "Unknown Budget",
+                            CategoryId = tbi.CategoryId,
+                            CategoryName = tbi.Transaction?.Category?.CategoryName ?? "Unknown",
+                            ImpactAmount = tbi.ImpactAmount,
                             ImpactType = "Deduction"
                         }
                     }
                 })
-                .ToListAsync();
+                .OrderByDescending(t => t.TransactionDate)
+                .ToList();
 
-            return transactions;
+                return transactions;
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (in a real application, use proper logging)
+                Console.WriteLine($"Error in GetBudgetTransactionsAsync: {ex.Message}");
+                return new List<TransactionDetailsDto>();
+            }
         }
 
         public async Task<List<ExpenseBreakdownDto>> GetExpenseBreakdownAsync(int budgetId)
@@ -145,23 +179,30 @@ namespace SpendSmart_Backend.Services
             var budget = await _context.Budgets
                 .Include(b => b.BudgetCategories)
                 .ThenInclude(bc => bc.Category)
+                .Include(b => b.TransactionBudgetImpacts)
                 .FirstOrDefaultAsync(b => b.BudgetId == budgetId);
 
             if (budget == null)
                 return new List<ExpenseBreakdownDto>();
 
-            var totalSpent = budget.TotalSpentAmount;
-            
+            // Calculate total spent from transaction impacts (like backend folder)
+            var totalSpent = budget.TransactionBudgetImpacts.Sum(tbi => tbi.ImpactAmount);
+
+            // Group impacts by category to get category spending
+            var categorySpending = budget.TransactionBudgetImpacts
+                .GroupBy(tbi => tbi.CategoryId)
+                .ToDictionary(g => g.Key, g => g.Sum(tbi => tbi.ImpactAmount));
+
             var breakdown = budget.BudgetCategories
-                .Where(bc => bc.SpentAmount > 0)
+                .Where(bc => categorySpending.ContainsKey(bc.CategoryId) && categorySpending[bc.CategoryId] > 0)
                 .Select(bc => new ExpenseBreakdownDto
                 {
                     CategoryId = bc.CategoryId,
                     CategoryName = bc.Category.CategoryName,
-                    Amount = bc.SpentAmount,
-                    Percentage = totalSpent > 0 ? (bc.SpentAmount / totalSpent) * 100 : 0,
-                    Color = bc.Category.Color,
-                    Icon = bc.Category.Icon
+                    Amount = categorySpending[bc.CategoryId],
+                    Percentage = totalSpent > 0 ? Math.Round((categorySpending[bc.CategoryId] / totalSpent) * 100 * 10) / 10 : 0,
+                    Color = bc.Category.Color ?? "#666666",
+                    Icon = bc.Category.Icon ?? "💰"
                 })
                 .OrderByDescending(eb => eb.Amount)
                 .ToList();
@@ -237,7 +278,7 @@ namespace SpendSmart_Backend.Services
             {
                 throw new ArgumentException($"User with ID {userId} does not exist.");
             }
-            
+
             // Calculate end date based on budget type
             DateTime endDate;
             if (createBudgetDto.BudgetType.ToLower() == "monthly")
@@ -292,7 +333,8 @@ namespace SpendSmart_Backend.Services
             await _context.SaveChangesAsync();
 
             // Return the newly created budget details
-            return await GetBudgetDetailsAsync(budget.BudgetId);
+            var budgetDetails = await GetBudgetDetailsAsync(budget.BudgetId);
+            return budgetDetails ?? throw new InvalidOperationException("Failed to retrieve created budget details");
         }
 
         public async Task<BudgetResponseDto?> UpdateBudgetAsync(int budgetId, UpdateBudgetDto updateBudgetDto)
@@ -459,5 +501,40 @@ namespace SpendSmart_Backend.Services
             // Update budget amounts
             await UpdateBudgetAmountsAsync(budgetId);
         }
+
+        // New method to populate missing budget impacts for existing transactions
+        public async Task PopulateMissingBudgetImpactsAsync()
+        {
+            // Get all expense transactions that don't have budget impacts
+            var expenseTransactionsWithoutImpacts = await _context.Transactions
+                .Where(t => t.TransactionType == "Expense" &&
+                           !_context.TransactionBudgetImpacts.Any(tbi => tbi.TransactionId == t.TransactionId))
+                .Include(t => t.Category)
+                .ToListAsync();
+
+            foreach (var transaction in expenseTransactionsWithoutImpacts)
+            {
+                // Find active budgets that include this category and date range
+                var activeBudgets = await _context.Budgets
+                    .Include(b => b.BudgetCategories)
+                    .Where(b =>
+                        b.UserId == transaction.UserId &&
+                        b.BudgetCategories.Any(bc => bc.CategoryId == transaction.CategoryId) &&
+                        b.StartDate <= transaction.TransactionDate &&
+                        b.EndDate >= transaction.TransactionDate)
+                    .ToListAsync();
+
+                foreach (var budget in activeBudgets)
+                {
+                    // Record impact on this budget
+                    await RecordTransactionImpactAsync(
+                        transaction.TransactionId,
+                        budget.BudgetId,
+                        transaction.CategoryId,
+                        transaction.Amount
+                    );
+                }
+            }
+        }
     }
-} 
+}

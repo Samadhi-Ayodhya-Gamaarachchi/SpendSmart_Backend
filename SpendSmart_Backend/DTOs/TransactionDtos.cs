@@ -39,6 +39,8 @@ namespace SpendSmart_Backend.DTOs
         public required string TransactionType { get; set; }
         public int CategoryId { get; set; }
         public required string CategoryName { get; set; }
+        public string? CategoryIcon { get; set; }
+        public string? CategoryColor { get; set; }
         public decimal Amount { get; set; }
         public required string TransactionDate { get; set; }
         public string? Description { get; set; }
@@ -92,4 +94,4 @@ namespace SpendSmart_Backend.DTOs
         public decimal Expenses { get; set; }
         public decimal NetAmount { get; set; }
     }
-} 
+}

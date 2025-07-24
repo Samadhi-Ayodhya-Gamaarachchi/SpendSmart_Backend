@@ -28,6 +28,11 @@ namespace SpendSmart_Backend.Controllers
         public ActionResult<string> GetDebugInfo()
         {
             var budgetType = _context.Model.FindEntityType(typeof(SpendSmart_Backend.Models.Budget));
+            if (budgetType == null)
+            {
+                return BadRequest("Budget entity type not found");
+            }
+
             var properties = budgetType.GetProperties().Select(p => new
             {
                 Name = p.Name,
@@ -142,7 +147,7 @@ namespace SpendSmart_Backend.Controllers
 
             return NoContent();
         }
-        
+
         // POST: api/Budget/validate-request/{userId}
         [HttpPost("validate-request/{userId}")]
         public IActionResult ValidateBudgetRequest(int userId, [FromBody] CreateBudgetDto createBudgetDto)
@@ -153,15 +158,15 @@ namespace SpendSmart_Backend.Controllers
             {
                 return BadRequest(new { Error = $"User with ID {userId} does not exist" });
             }
-            
+
             // Get all available categories
             var availableCategories = _context.Categories.ToList();
             var availableCategoryIds = availableCategories.Select(c => c.Id).ToList();
-            
+
             // Check if all category IDs in the request exist
             var requestedCategoryIds = createBudgetDto.CategoryAllocations.Select(ca => ca.CategoryId).ToList();
             var invalidCategoryIds = requestedCategoryIds.Where(id => !availableCategoryIds.Contains(id)).ToList();
-            
+
             if (invalidCategoryIds.Any())
             {
                 return BadRequest(new
@@ -172,7 +177,7 @@ namespace SpendSmart_Backend.Controllers
                     AvailableCategories = availableCategories.Select(c => new { c.Id, c.CategoryName, c.Type })
                 });
             }
-            
+
             return Ok(new
             {
                 Message = "Budget request is valid",
@@ -203,6 +208,54 @@ namespace SpendSmart_Backend.Controllers
 
             return NoContent();
         }
+
+        // POST: api/Budget/populatebudgetimpacts
+        [HttpPost("populatebudgetimpacts")]
+        public async Task<IActionResult> PopulateBudgetImpacts()
+        {
+            try
+            {
+                await _budgetService.PopulateMissingBudgetImpactsAsync();
+                return Ok(new { message = "Budget impacts populated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        // GET: api/Budget/debug/impacts/{budgetId}
+        [HttpGet("debug/impacts/{budgetId}")]
+        public async Task<IActionResult> GetBudgetImpactsDebug(int budgetId)
+        {
+            try
+            {
+                var impacts = await _context.TransactionBudgetImpacts
+                    .Where(tbi => tbi.BudgetId == budgetId)
+                    .Include(tbi => tbi.Transaction)
+                    .ThenInclude(t => t.Category)
+                    .Select(tbi => new TransactionBudgetImpactDebugDto
+                    {
+                        TransactionId = tbi.TransactionId,
+                        BudgetId = tbi.BudgetId,
+                        CategoryName = tbi.Transaction.Category.CategoryName,
+                        Amount = tbi.ImpactAmount,
+                        TransactionDate = tbi.Transaction.TransactionDate
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    budgetId = budgetId,
+                    impactCount = impacts.Count,
+                    impacts = impacts
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
     }
 
     public class TransactionImpactDto
@@ -212,4 +265,13 @@ namespace SpendSmart_Backend.Controllers
         public int CategoryId { get; set; }
         public decimal Amount { get; set; }
     }
-} 
+
+    public class TransactionBudgetImpactDebugDto
+    {
+        public int TransactionId { get; set; }
+        public int BudgetId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public DateTime TransactionDate { get; set; }
+    }
+}
