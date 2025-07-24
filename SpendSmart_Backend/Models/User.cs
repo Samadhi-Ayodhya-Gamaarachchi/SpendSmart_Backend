@@ -10,6 +10,7 @@ namespace SpendSmart_Backend.Models
         public string UserName { get; set; }
         [Required]
         public string Password { get; set; }
+        public string Currency { get; set; } = string.Empty;
         [Required]
         public string? FirstName { get; set; }
         [Required]

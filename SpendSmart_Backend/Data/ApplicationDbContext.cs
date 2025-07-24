@@ -5,9 +5,9 @@ namespace SpendSmart_Backend.Data
 {
     public class ApplicationDbContext : DbContext
     {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-    {
-    }
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        {
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -56,6 +56,51 @@ namespace SpendSmart_Backend.Data
                 entity.HasIndex(e => e.Email).IsUnique();
             });
 
+             modelBuilder.Entity<Feedback>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e => e.UserId)
+                .IsRequired();
+                
+            entity.Property(e => e.Rating)
+                .IsRequired()
+                .HasDefaultValue(0);
+                
+            entity.Property(e => e.Comment)
+                .HasMaxLength(2000);
+                
+            entity.Property(e => e.PageContext)
+                .HasMaxLength(100);
+                
+            entity.Property(e => e.SubmittedAt)
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()"); // SQL Server syntax, adjust for other DBs
+                
+            entity.Property(e => e.IsProcessed)
+                .IsRequired()
+                .HasDefaultValue(false);
+                
+            // Create index for performance
+            entity.HasIndex(e => e.UserId)
+                .HasDatabaseName("IX_Feedback_UserId");
+                
+            entity.HasIndex(e => e.SubmittedAt)
+                .HasDatabaseName("IX_Feedback_SubmittedAt");
+                
+            entity.HasIndex(e => e.Rating)
+                .HasDatabaseName("IX_Feedback_Rating");
+                
+            entity.HasIndex(e => e.PageContext)
+                .HasDatabaseName("IX_Feedback_PageContext");
+            
+            // Configure foreign key relationship
+            entity.HasOne(f => f.User)
+                .WithMany() // Adjust if you have a navigation property in User model
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade); // CUSTOMIZE: Change to Restrict if you don't want cascade delete
+        });
+
             // Your existing entity configurations...
             // (Keep all your existing modelBuilder configurations for other entities)
         }
@@ -68,5 +113,6 @@ namespace SpendSmart_Backend.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<Goal> Goals { get; set; }
         public DbSet<Report> Reports { get; set; }
+         public DbSet<Feedback> Feedbacks { get; set; }
     }
 }
