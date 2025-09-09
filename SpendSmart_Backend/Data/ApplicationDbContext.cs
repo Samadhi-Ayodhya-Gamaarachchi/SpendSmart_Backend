@@ -3,22 +3,25 @@ using SpendSmart_Backend.Models;
 
 namespace SpendSmart_Backend.Data
 {
-    public class ApplicationDbContext:DbContext
+    public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
         }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Configure UserAdmin composite key
             modelBuilder.Entity<UserAdmin>()
                 .HasKey(ua => new { ua.UserId, ua.ManagerId });
-            
+
             modelBuilder.Entity<UserAdmin>()
-            .HasOne(ua => ua.User)
-            .WithMany(u => u.UserAdmins)
-            .HasForeignKey(ua => ua.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+                .HasOne(ua => ua.User)
+                .WithMany(u => u.UserAdmins)
+                .HasForeignKey(ua => ua.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<UserAdmin>()
                 .HasOne(ua => ua.Manager)
@@ -27,8 +30,52 @@ namespace SpendSmart_Backend.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
 
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.UserName)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            // Configure Goal entity
+            modelBuilder.Entity<Goal>(entity =>
+            {
+                entity.Property(e => e.TargetAmount).HasPrecision(18, 2);
+                entity.Property(e => e.CurrentAmount).HasPrecision(18, 2);
+
+                entity.HasOne(g => g.User)
+                    .WithMany(u => u.Goals)
+                    .HasForeignKey(g => g.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Configure SavingRecord entity
+            
+
+
+
+            modelBuilder.Entity<Transaction>()
+               .HasOne(t => t.RecurringTransaction)
+               .WithMany(rt => rt.Transactions)
+               .HasForeignKey(t => t.RecurringTransactionId)
+               .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Transaction>()
+              .HasOne(t => t.User)
+              .WithMany(u => u.Transactions)
+              .HasForeignKey(t => t.UserId)
+              .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Transaction>()
+              .HasOne(t => t.Category)
+              .WithMany(c => c.Transactions)
+              .HasForeignKey(t => t.CategoryId)
+              .OnDelete(DeleteBehavior.Restrict);
+
         }
 
+        // DbSets
         public DbSet<User> Users { get; set; }
         public DbSet<Admin> Admins { get; set; }
         public DbSet<UserAdmin> UserAdmins { get; set; }
@@ -36,9 +83,9 @@ namespace SpendSmart_Backend.Data
         public DbSet<Budget> Budgets { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Goal> Goals { get; set; }
+        public DbSet<SavingRecord> SavingRecords { get; set; }
         public DbSet<Report> Reports { get; set; }
 
-        
+        public DbSet<RecurringTransaction> RecurringTransactions { get; set; }
     }
-    
 }

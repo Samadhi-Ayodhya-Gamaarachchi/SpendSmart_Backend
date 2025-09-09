@@ -43,7 +43,11 @@ namespace SpendSmart_Backend.DTOs
     }
 
     public class UpdateGoalDto
+
+
     {
+       
+
         [StringLength(100)]
         public string? Name { get; set; }
 

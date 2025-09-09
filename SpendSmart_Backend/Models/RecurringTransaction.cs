@@ -6,12 +6,16 @@ namespace SpendSmart_Backend.Models
     public class RecurringTransaction
     {
         [Key]
+
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
         public string Type { get; set; }
         public int CategoryId { get; set; }
         public decimal Amount { get; set; }
+
         public string? Description { get; set; } // <-- Add this line
+
+
         public string Frequency { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
@@ -27,4 +31,6 @@ namespace SpendSmart_Backend.Models
 
         public ICollection<Transaction> Transactions { get; set; }
     }
+
 }
+

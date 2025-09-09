@@ -17,12 +17,20 @@ namespace SpendSmart_Backend.Models
         public ICollection<UserAdmin> UserAdmins { get; set; }
         public ICollection<UserAdmin> ManagedUsers { get; set; }
 
+        public ICollection<SavingRecord> SavingRecords { get; set; }
+
+
+
         // Add missing properties for ResetToken and ResetTokenExpiry
         public string? ResetToken { get; set; }
         public DateTime? ResetTokenExpiry { get; set; }
 
         public bool IsEmailVerified { get; set; } = false;
         public string? EmailVerificationToken { get; set; }
+
+
+
+        public ICollection<RecurringTransaction> RecurringTransactions { get; set; }
 
 
     }

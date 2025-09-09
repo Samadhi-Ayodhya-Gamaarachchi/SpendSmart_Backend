@@ -8,4 +8,6 @@ namespace SpendSmart_Backend.Services
         Task<List<DashboardIncomeExpenseDto>> GetIncomeVsExpenseSummary(int userId, string period);
         Task<List<DashboardPiechartDto>> GetPiechartData(int userId);
     }
+
 }
+

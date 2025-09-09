@@ -14,12 +14,16 @@ namespace SpendSmart_Backend.Models
         public DateTime Date { get; set; }
         public string? Description { get; set; }
         public int UserId { get; set; }
+        public int? RecurringTransactionId { get; set; }
 
         [ForeignKey("CategoryId")]
         public Category Category { get; set; }
 
         [ForeignKey("UserId")]
         public User User { get; set; }
+
+        [ForeignKey("RecurringTransactionId")]
+        public RecurringTransaction? RecurringTransaction { get; set; }
 
     }
 }
