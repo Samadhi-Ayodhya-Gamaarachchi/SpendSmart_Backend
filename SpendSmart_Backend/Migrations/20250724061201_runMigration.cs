@@ -6,27 +6,26 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SpendSmart_Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddRecurringTransactionTable : Migration
+    public partial class runMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Transactions_Categories_CategoryId",
-                table: "Transactions");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Transactions_Users_UserId",
-                table: "Transactions");
-
             migrationBuilder.AddColumn<int>(
                 name: "RecurringTransactionId",
                 table: "Transactions",
                 type: "int",
                 nullable: true);
 
+            migrationBuilder.AddColumn<string>(
+                name: "Type",
+                table: "Categories",
+                type: "nvarchar(max)",
+                nullable: false,
+                defaultValue: "");
+
             migrationBuilder.CreateTable(
-                name: "RecurringTransactions",
+                name: "RecurringTransaction",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -34,6 +33,7 @@ namespace SpendSmart_Backend.Migrations
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Frequency = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -43,15 +43,15 @@ namespace SpendSmart_Backend.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RecurringTransactions", x => x.Id);
+                    table.PrimaryKey("PK_RecurringTransaction", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_RecurringTransactions_Categories_CategoryId",
+                        name: "FK_RecurringTransaction_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_RecurringTransactions_Users_UserId",
+                        name: "FK_RecurringTransaction_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -64,57 +64,32 @@ namespace SpendSmart_Backend.Migrations
                 column: "RecurringTransactionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RecurringTransactions_CategoryId",
-                table: "RecurringTransactions",
+                name: "IX_RecurringTransaction_CategoryId",
+                table: "RecurringTransaction",
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RecurringTransactions_UserId",
-                table: "RecurringTransactions",
+                name: "IX_RecurringTransaction_UserId",
+                table: "RecurringTransaction",
                 column: "UserId");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_Transactions_Categories_CategoryId",
-                table: "Transactions",
-                column: "CategoryId",
-                principalTable: "Categories",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Transactions_RecurringTransactions_RecurringTransactionId",
+                name: "FK_Transactions_RecurringTransaction_RecurringTransactionId",
                 table: "Transactions",
                 column: "RecurringTransactionId",
-                principalTable: "RecurringTransactions",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Transactions_Users_UserId",
-                table: "Transactions",
-                column: "UserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                principalTable: "RecurringTransaction",
+                principalColumn: "Id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_Transactions_Categories_CategoryId",
-                table: "Transactions");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Transactions_RecurringTransactions_RecurringTransactionId",
-                table: "Transactions");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Transactions_Users_UserId",
+                name: "FK_Transactions_RecurringTransaction_RecurringTransactionId",
                 table: "Transactions");
 
             migrationBuilder.DropTable(
-                name: "RecurringTransactions");
+                name: "RecurringTransaction");
 
             migrationBuilder.DropIndex(
                 name: "IX_Transactions_RecurringTransactionId",
@@ -124,21 +99,9 @@ namespace SpendSmart_Backend.Migrations
                 name: "RecurringTransactionId",
                 table: "Transactions");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Transactions_Categories_CategoryId",
-                table: "Transactions",
-                column: "CategoryId",
-                principalTable: "Categories",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Transactions_Users_UserId",
-                table: "Transactions",
-                column: "UserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+            migrationBuilder.DropColumn(
+                name: "Type",
+                table: "Categories");
         }
     }
 }

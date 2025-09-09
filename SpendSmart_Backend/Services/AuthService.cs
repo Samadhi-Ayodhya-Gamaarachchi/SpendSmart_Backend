@@ -92,7 +92,8 @@ namespace SpendSmart_Backend.Services
             if (!user.IsEmailVerified)
                 throw new Exception("Please verify your email before logging in.");
 
-            var token = $"fake-jwt-token-for-{user.UserName}";
+            var token = GenerateJwtToken(user.Id, user.UserName, "User");
+
             return token;
         }
 
@@ -115,17 +116,27 @@ namespace SpendSmart_Backend.Services
 
 
 
-        public string GenerateJwtToken(string username, string role)
+        public string GenerateJwtToken(int userId, string username, string role)
         {
-            var jwtSettings = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build().GetSection("Jwt");
+            var jwtSettings = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .Build()
+                .GetSection("Jwt");
 
             var claims = new[]
             {
-        new Claim(ClaimTypes.Name, username),
-        new Claim(ClaimTypes.Role, role)
+        new Claim("userId", userId.ToString()), // ✅ custom claim
+        new Claim("username", username),        // ✅ custom claim
+        new Claim(ClaimTypes.Role, role)        // ⛔️ ClaimTypes.Name => use custom if needed
     };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
+            var keyBytes = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+            if (keyBytes.Length < 32)
+            {
+                throw new Exception("JWT signing key must be at least 256 bits (32 characters).");
+            }
+
+            var key = new SymmetricSecurityKey(keyBytes);
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
@@ -138,6 +149,8 @@ namespace SpendSmart_Backend.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+
 
         public async Task<bool> GenerateResetTokenAsync(string email)
         {

@@ -14,7 +14,7 @@ namespace SpendSmart_Backend.DTOs
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
         public decimal Amount { get; set; }
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Required]
         [StringLength(20)]
@@ -28,34 +28,30 @@ namespace SpendSmart_Backend.DTOs
         [Range(1, int.MaxValue, ErrorMessage = "Occurrences must be at least 1")]
         public int? Occurrences { get; set; }
 
-        public bool AutoDeduction { get; set; } = true;
-
-        [Required]
-        public int UserId { get; set; }
     }
 
-    public class UpdateRecurringTransactionDto
-    {
-        [StringLength(20)]
-        public string? Type { get; set; }
+    //public class UpdateRecurringTransactionDto
+    //{
+    //    [StringLength(20)]
+    //    public string? Type { get; set; }
 
-        public int? CategoryId { get; set; }
+    //    public int? CategoryId { get; set; }
 
-        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
-        public decimal? Amount { get; set; }
+    //    [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+    //    public decimal? Amount { get; set; }
 
-        [StringLength(20)]
-        public string? Frequency { get; set; }
+    //    [StringLength(20)]
+    //    public string? Frequency { get; set; }
 
-        public DateTime? StartDate { get; set; }
+    //    public DateTime? StartDate { get; set; }
 
-        public DateTime? EndDate { get; set; }
+    //    public DateTime? EndDate { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "Occurrences must be at least 1")]
-        public int? Occurrences { get; set; }
+    //    [Range(1, int.MaxValue, ErrorMessage = "Occurrences must be at least 1")]
+    //    public int? Occurrences { get; set; }
 
-        public bool? AutoDeduction { get; set; }
-    }
+    //    public bool? AutoDeduction { get; set; }
+    //}
 
     public class RecurringTransactionDto
     {
@@ -69,7 +65,6 @@ namespace SpendSmart_Backend.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public int? Occurrences { get; set; }
-        public bool AutoDeduction { get; set; }
         public int UserId { get; set; }
         public DateTime? NextExecutionDate { get; set; }
         public bool IsActive { get; set; }
@@ -81,10 +76,11 @@ namespace SpendSmart_Backend.DTOs
         public string Type { get; set; }
         public string CategoryName { get; set; }
         public decimal Amount { get; set; }
+        public string Description { get; set; }
         public string Frequency { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public bool AutoDeduction { get; set; }
+        public int? Occurrences { get; set; }
         public DateTime? NextExecutionDate { get; set; }
         public bool IsActive { get; set; }
         public int GeneratedTransactionsCount { get; set; }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.DTOs;
 using SpendSmart_Backend.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SpendSmart_Backend.Controllers
 {
@@ -47,35 +48,30 @@ namespace SpendSmart_Backend.Controllers
             return Ok(goalDtos);
         }
 
-        // GET: api/Goals/5
-        [HttpGet("{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<GoalDto>> GetGoal(int id)
+        [HttpGet("user/{userId}")]
+        public async Task<ActionResult<IEnumerable<GoalDto>>> GetGoal(int userId)
         {
-            var goal = await _context.Goals.FindAsync(id);
+            var goals = await _context.Goals
+                .Where(g => g.UserId == userId)
+                .Select(g => new GoalDto
+                {
+                    Id = g.Id,
+                    Name = g.Name,
+                    TargetAmount = g.TargetAmount,
+                    CurrentAmount = g.CurrentAmount,
+                    StartDate = g.StartDate,
+                    EndDate = g.EndDate,
+                    Description = g.Description,
+                    UserId = g.UserId,
 
-            if (goal == null)
-            {
-                return NotFound();
-            }
+                    Progress = g.TargetAmount > 0 ? Math.Round((g.CurrentAmount / g.TargetAmount) * 100, 2) : 0,
+                    RemainingDays = (int)(g.EndDate - DateTime.Now).TotalDays
+                })
+                .ToListAsync();
 
-            var goalDto = new GoalDto
-            {
-                Id = goal.Id,
-                Name = goal.Name,
-                TargetAmount = goal.TargetAmount,
-                CurrentAmount = goal.CurrentAmount,
-                StartDate = goal.StartDate,
-                EndDate = goal.EndDate,
-                Description = goal.Description ?? "",
-                UserId = goal.UserId,
-                Progress = goal.TargetAmount > 0 ? Math.Round((goal.CurrentAmount / goal.TargetAmount) * 100, 2) : 0,
-                RemainingDays = (int)(goal.EndDate - DateTime.Now).TotalDays
-            };
-
-            return goalDto;
+            return Ok(goals);
         }
+
 
         // POST: api/Goals
         [HttpPost]
@@ -94,6 +90,12 @@ namespace SpendSmart_Backend.Controllers
                     return BadRequest(ModelState);
                 }
 
+                var user = await _context.Users.FindAsync(createGoalDto.UserId);
+                if (user == null)
+                {
+                    return BadRequest($"User with ID {createGoalDto.UserId} not found");
+                }
+
                 var goal = new Goal
                 {
                     Name = createGoalDto.Name,
@@ -102,7 +104,8 @@ namespace SpendSmart_Backend.Controllers
                     StartDate = createGoalDto.StartDate,
                     EndDate = createGoalDto.EndDate,
                     Description = createGoalDto.Description ?? string.Empty,
-                    UserId = createGoalDto.UserId
+                    UserId = createGoalDto.UserId,
+                    User = user
                 };
 
                 _context.Goals.Add(goal);

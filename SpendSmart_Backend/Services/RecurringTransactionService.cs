@@ -14,7 +14,7 @@ namespace SpendSmart_Backend.Services
             _context = context;
         }
 
-        public async Task<RecurringTransactionDto> CreateRecurringTransactionAsync(CreateRecurringTransactionDto dto)
+        public async Task<RecurringTransactionDto> CreateRecurringTransactionAsync(int userId,CreateRecurringTransactionDto dto)
         {
             // Validate category exists and belongs to user
             var category = await _context.Categories
@@ -61,38 +61,42 @@ namespace SpendSmart_Backend.Services
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 Occurrences = dto.Occurrences,
-                AutoDeduction = dto.AutoDeduction,
-                UserId = dto.UserId
+                AutoDeduction = true,
+                UserId = userId
             };
 
             _context.RecurringTransactions.Add(recurringTransaction);
             await _context.SaveChangesAsync();
-            if (dto.AutoDeduction && dto.StartDate.Date == DateTime.Today)
-            {
-                var transaction = new Transaction
-                {
-                    Type = dto.Type,
-                    CategoryId = dto.CategoryId,
-                    Amount = dto.Amount,
-                    Date = DateTime.Today,
-                    Description = $"{dto.Description} (Recurring Transaction)",
-                    UserId = dto.UserId,
-                    RecurringTransactionId = recurringTransaction.Id
-                };
 
-                _context.Transactions.Add(transaction);
-                await _context.SaveChangesAsync();
-            }
+            // Remove the duplicate logic that only creates for today
+            // if (dto.AutoDeduction && dto.StartDate.Date == DateTime.Today)
+            // {
+            //     var transaction = new Transaction
+            //     {
+            //         Type = dto.Type,
+            //         CategoryId = dto.CategoryId,
+            //         Amount = dto.Amount,
+            //         Date = DateTime.Today,
+            //         Description = $"{dto.Description} (Recurring Transaction)",
+            //         UserId = dto.UserId,
+            //         RecurringTransactionId = recurringTransaction.Id
+            //     };
+    //
+            //     _context.Transactions.Add(transaction);
+            //     await _context.SaveChangesAsync();
+            // }
 
-            return await GetRecurringTransactionByIdAsync(recurringTransaction.Id);
-            //return recurringTransaction;
+            // Process transactions immediately for this newly created recurring transaction
+            await ProcessRecurringTransactionAsync(recurringTransaction.Id);
+
+            return await GetRecurringTransactionByIdAsync(userId, recurringTransaction.Id);
         }
 
-        public async Task<RecurringTransactionDto> GetRecurringTransactionByIdAsync(int id)
+        public async Task<RecurringTransactionDto> GetRecurringTransactionByIdAsync(int userId, int id)
         {
             var recurringTransaction = await _context.RecurringTransactions
                 .Include(static rt => rt.Category)
-                .FirstOrDefaultAsync(rt => rt.Id == id);
+                .FirstOrDefaultAsync(rt => rt.UserId == userId && rt.Id == id);
 
             if (recurringTransaction == null)
             {
@@ -110,17 +114,17 @@ namespace SpendSmart_Backend.Services
                 StartDate = recurringTransaction.StartDate,
                 EndDate = recurringTransaction.EndDate,
                 Occurrences = recurringTransaction.Occurrences,
-                AutoDeduction = recurringTransaction.AutoDeduction,
-                UserId = recurringTransaction.UserId,
+                UserId = userId,
                 NextExecutionDate = CalculateNextExecutionDate(recurringTransaction),
                 IsActive = IsRecurringTransactionActive(recurringTransaction)
             };
         }
 
-        public async Task<List<RecurringTransactionDto>> GetRecurringTransactionAsync()
+        public async Task<List<RecurringTransactionDto>> GetRecurringTransactionAsync(int userId)
         {
             var recurringTransactions = await _context.RecurringTransactions
                 .Include(rt => rt.Category)
+                .Where(rt => rt.UserId == userId)
                 .ToListAsync();
 
             return recurringTransactions.Select(rt => new RecurringTransactionDto
@@ -135,8 +139,7 @@ namespace SpendSmart_Backend.Services
                 StartDate = rt.StartDate,
                 EndDate = rt.EndDate,
                 Occurrences = rt.Occurrences,
-                AutoDeduction = rt.AutoDeduction,
-                UserId = rt.UserId,
+                UserId = userId,
                 NextExecutionDate = CalculateNextExecutionDate(rt),
                 IsActive = IsRecurringTransactionActive(rt)
             }).ToList();
@@ -150,7 +153,7 @@ namespace SpendSmart_Backend.Services
         //        .Where(rt => rt.UserId == userId)
         //        .OrderBy(rt => rt.StartDate)
         //        .ToListAsync();
-
+        //
         //    return recurringTransactions.Select(rt => new RecurringTransactionListDto
         //    {
         //        Id = rt.Id,
@@ -167,10 +170,11 @@ namespace SpendSmart_Backend.Services
         //    }).ToList();
         //}
 
-        public async Task<List<RecurringTransactionListDto>> GetActiveRecurringTransactionsAsync()
+        public async Task<List<RecurringTransactionListDto>> GetActiveRecurringTransactionsAsync(int userId)
         {
             var recurringTransactions = await _context.RecurringTransactions
                 .Include(rt => rt.Category)
+                .Where(rt => rt.UserId == userId)
                 .ToListAsync();
 
             return recurringTransactions
@@ -181,10 +185,11 @@ namespace SpendSmart_Backend.Services
                     Type = rt.Type,
                     CategoryName = rt.Category.Name,
                     Amount = rt.Amount,
+                    Description = rt.Description,
                     Frequency = rt.Frequency,
                     StartDate = rt.StartDate,
                     EndDate = rt.EndDate,
-                    AutoDeduction = rt.AutoDeduction,
+                    Occurrences = rt.Occurrences,
                     NextExecutionDate = CalculateNextExecutionDate(rt),
                     IsActive = true,
                     GeneratedTransactionsCount = _context.Transactions.Count(t => t.RecurringTransactionId == rt.Id)
@@ -197,12 +202,12 @@ namespace SpendSmart_Backend.Services
         //{
         //    var recurringTransaction = await _context.RecurringTransactions
         //        .FirstOrDefaultAsync(rt => rt.Id == id);
-
+        //
         //    if (recurringTransaction == null)
         //    {
         //        throw new ArgumentException("Recurring transaction not found");
         //    }
-
+        //
         //    // Update fields if provided
         //    if (!string.IsNullOrEmpty(dto.Type))
         //    {
@@ -213,7 +218,7 @@ namespace SpendSmart_Backend.Services
         //        }
         //        recurringTransaction.Type = dto.Type;
         //    }
-
+        //
         //    if (dto.CategoryId.HasValue)
         //    {
         //        var category = await _context.Categories
@@ -224,12 +229,12 @@ namespace SpendSmart_Backend.Services
         //        }
         //        recurringTransaction.CategoryId = dto.CategoryId.Value;
         //    }
-
+        //
         //    if (dto.Amount.HasValue)
         //    {
         //        recurringTransaction.Amount = dto.Amount.Value;
         //    }
-
+        //
         //    if (!string.IsNullOrEmpty(dto.Frequency))
         //    {
         //        var validFrequencies = new[] { "Daily", "Weekly", "Monthly", "Yearly" };
@@ -239,12 +244,12 @@ namespace SpendSmart_Backend.Services
         //        }
         //        recurringTransaction.Frequency = dto.Frequency;
         //    }
-
+        //
         //    if (dto.StartDate.HasValue)
         //    {
         //        recurringTransaction.StartDate = dto.StartDate;
         //    }
-
+        //
         //    if (dto.EndDate.HasValue)
         //    {
         //        if (dto.EndDate <= recurringTransaction.StartDate)
@@ -253,26 +258,26 @@ namespace SpendSmart_Backend.Services
         //        }
         //        recurringTransaction.EndDate = dto.EndDate;
         //    }
-
+        //
         //    if (dto.Occurrences.HasValue)
         //    {
         //        recurringTransaction.Occurrences = dto.Occurrences;
         //    }
-
+        //
         //    if (dto.AutoDeduction.HasValue)
         //    {
         //        recurringTransaction.AutoDeduction = dto.AutoDeduction.Value;
         //    }
-
+        //
         //    await _context.SaveChangesAsync();
-
+        //
         //    return await GetRecurringTransactionByIdAsync(id);
         //}
 
-        public async Task<bool> DeleteRecurringTransactionAsync(int id)
+        public async Task<bool> DeleteRecurringTransactionAsync(int userId, int id)
         {
             var recurringTransaction = await _context.RecurringTransactions
-                .FirstOrDefaultAsync(rt => rt.Id == id);
+                .FirstOrDefaultAsync(rt => rt.UserId == userId && rt.Id == id);
 
             if (recurringTransaction == null)
             {
@@ -298,129 +303,233 @@ namespace SpendSmart_Backend.Services
                 if (!IsRecurringTransactionActive(recurringTransaction))
                     continue;
 
-                var nextExecutionDate = CalculateNextExecutionDate(recurringTransaction);
+                if (!recurringTransaction.AutoDeduction)
+                    continue;
 
-                if (nextExecutionDate?.Date == today && recurringTransaction.AutoDeduction)
+                // Get all existing transactions for this recurring transaction
+                var existingTransactions = await _context.Transactions
+                    .Where(t => t.RecurringTransactionId == recurringTransaction.Id)
+                    .Select(t => t.Date.Date)
+                    .ToListAsync();
+
+                // Generate all missing transactions from start date to today
+                var currentDate = recurringTransaction.StartDate!.Value.Date;
+                
+                while (currentDate <= today)
                 {
-                    // Check if transaction for today already exists
-                    var existingTransaction = await _context.Transactions
-                        .FirstOrDefaultAsync(t => t.RecurringTransactionId == recurringTransaction.Id &&
-                                                 t.Date.Date == today);
-
-                    if (existingTransaction == null)
+                    // Check if we should execute on this date and if transaction doesn't already exist
+                    if (ShouldExecuteOnDate(recurringTransaction, currentDate) && 
+                        !existingTransactions.Contains(currentDate))
                     {
-                        // Create a new transaction
+                        // Check if we've reached the occurrences limit
+                        if (recurringTransaction.Occurrences.HasValue && 
+                            existingTransactions.Count >= recurringTransaction.Occurrences.Value)
+                        {
+                            break;
+                        }
+
+                        // Create a new transaction for this date
                         var transaction = new Transaction
                         {
                             Type = recurringTransaction.Type,
                             CategoryId = recurringTransaction.CategoryId,
                             Amount = recurringTransaction.Amount,
-                            Date = today,
-                            Description = $"Recurring Transaction ({recurringTransaction.Frequency})",
+                            Date = currentDate,
+                            Description = $"{recurringTransaction.Description} (Recurring Transaction)",
                             UserId = recurringTransaction.UserId,
                             RecurringTransactionId = recurringTransaction.Id
                         };
 
                         _context.Transactions.Add(transaction);
+                        existingTransactions.Add(currentDate); // Add to our tracking list
                     }
+
+                    // Move to next potential execution date based on frequency
+                    currentDate = GetNextExecutionDate(recurringTransaction, currentDate);
+                    
+                    // Safety check to prevent infinite loops
+                    if (currentDate > today || currentDate <= recurringTransaction.StartDate!.Value.Date)
+                        break;
                 }
             }
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<Transaction>> GetTransactionsFromRecurringTransactionAsync(int recurringTransactionId)
+        private bool ShouldExecuteOnDate(RecurringTransaction recurringTransaction, DateTime date)
+        {
+            if (!recurringTransaction.StartDate.HasValue)
+                return false;
+
+            var startDate = recurringTransaction.StartDate.Value.Date;
+            
+            // If date is before start date, don't execute
+            if (date < startDate)
+                return false;
+
+            // Check if we've reached the end date
+            if (recurringTransaction.EndDate.HasValue && date > recurringTransaction.EndDate.Value.Date)
+                return false;
+
+            // Calculate if this date matches the frequency pattern
+            var daysDifference = (date - startDate).Days;
+
+            return recurringTransaction.Frequency switch
+            {
+                "Daily" => true, // Execute every day
+                "Weekly" => daysDifference % 7 == 0, // Execute every 7 days
+                "Monthly" => IsMonthlyDue(startDate, date),
+                "Yearly" => IsYearlyDue(startDate, date),
+                _ => false
+            };
+        }
+
+        private DateTime GetNextExecutionDate(RecurringTransaction recurringTransaction, DateTime currentDate)
+        {
+            return recurringTransaction.Frequency switch
+            {
+                "Daily" => currentDate.AddDays(1),
+                "Weekly" => currentDate.AddDays(7),
+                "Monthly" => currentDate.AddMonths(1),
+                "Yearly" => currentDate.AddYears(1),
+                _ => currentDate.AddDays(1) // Default fallback
+            };
+        }
+
+        private bool IsMonthlyDue(DateTime startDate, DateTime today)
+        {
+            // Execute on the same day of the month as start date
+            if (today.Day != startDate.Day)
+            {
+                // Handle end of month scenarios (e.g., started on 31st, current month has 30 days)
+                var lastDayOfMonth = DateTime.DaysInMonth(today.Year, today.Month);
+                if (startDate.Day > lastDayOfMonth && today.Day == lastDayOfMonth)
+                    return true;
+                return false;
+            }
+
+            // Check if enough months have passed (include the start date)
+            var monthsDifference = ((today.Year - startDate.Year) * 12) + today.Month - startDate.Month;
+            return monthsDifference >= 0; // <-- Change from > 0 to >= 0
+        }
+
+        private bool IsYearlyDue(DateTime startDate, DateTime today)
+        {
+            // Execute on the same month and day as start date
+            if (today.Month != startDate.Month || today.Day != startDate.Day)
+            {
+                // Handle leap year scenario for Feb 29
+                if (startDate.Month == 2 && startDate.Day == 29 && 
+                    today.Month == 2 && today.Day == 28 && 
+                    !DateTime.IsLeapYear(today.Year))
+                    return true;
+                return false;
+            }
+
+            // Check if at least a year has passed (include the start date)
+            return today.Year >= startDate.Year; // <-- Change from > to >=
+        }
+
+        public async Task<List<TransactionViewDto>> GetTransactionsFromRecurringTransactionAsync(int userId,int recurringTransactionId)
         {
             // Verify the recurring transaction belongs to the user
             var recurringTransaction = await _context.RecurringTransactions
-                .FirstOrDefaultAsync(rt => rt.Id == recurringTransactionId);
+                .FirstOrDefaultAsync(rt => rt.UserId == userId && rt.Id == recurringTransactionId);
 
             if (recurringTransaction == null)
             {
                 throw new ArgumentException("Recurring transaction not found");
             }
 
-            return await _context.Transactions
+                return await _context.Transactions
                 .Include(t => t.Category)
                 .Where(t => t.RecurringTransactionId == recurringTransactionId)
                 .OrderByDescending(t => t.Date)
-                .ToListAsync();
-        }
-
-        public async Task<bool> DeleteTransactionFromRecurringAsync(int transactionId)
-        {
-            var transaction = await _context.Transactions
-                .FirstOrDefaultAsync(t => t.Id == transactionId && t.RecurringTransactionId.HasValue);
-
-            if (transaction == null)
-            {
-                return false;
-            }
-
-            _context.Transactions.Remove(transaction);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<RecurringTransactionSummaryDto> GetRecurringTransactionSummaryAsync()
-        {
-            var recurringTransactions = await _context.RecurringTransactions
-                .Include(rt => rt.Category)
-                .ToListAsync();
-
-            var activeTransactions = recurringTransactions.Where(rt => IsRecurringTransactionActive(rt)).ToList();
-            var inactiveTransactions = recurringTransactions.Where(rt => !IsRecurringTransactionActive(rt)).ToList();
-
-            // Calculate monthly amounts
-            var monthlyIncomeAmount = activeTransactions
-                .Where(rt => rt.Type == "Income")
-                .Sum(rt => ConvertToMonthlyAmount(rt.Amount, rt.Frequency));
-
-            var monthlyExpenseAmount = activeTransactions
-                .Where(rt => rt.Type == "Expense")
-                .Sum(rt => ConvertToMonthlyAmount(rt.Amount, rt.Frequency));
-
-            // Get upcoming transactions (next 7 days)
-            var upcomingTransactions = activeTransactions
-                .Select(rt => new RecurringTransactionListDto
+                .Select(t => new TransactionViewDto
                 {
-                    Id = rt.Id,
-                    Type = rt.Type,
-                    CategoryName = rt.Category.Name,
-                    Amount = rt.Amount,
-                    Frequency = rt.Frequency,
-                    StartDate = rt.StartDate,
-                    EndDate = rt.EndDate,
-                    AutoDeduction = rt.AutoDeduction,
-                    NextExecutionDate = CalculateNextExecutionDate(rt),
-                    IsActive = true,
-                    GeneratedTransactionsCount = _context.Transactions.Count(t => t.RecurringTransactionId == rt.Id)
+                    Id = t.Id,
+                    Type = t.Type,
+                    Category = t.Category.Name,
+                    Amount = t.Amount,
+                    Date = t.Date.ToString("yyyy-MM-dd"),
+                    Description = t.Description,
                 })
-                .Where(rt => rt.NextExecutionDate.HasValue && rt.NextExecutionDate.Value <= DateTime.Today.AddDays(7))
-                .OrderBy(rt => rt.NextExecutionDate)
-                .ToList();
-
-            return new RecurringTransactionSummaryDto
-            {
-                TotalActive = activeTransactions.Count,
-                TotalInactive = inactiveTransactions.Count,
-                MonthlyIncomeAmount = monthlyIncomeAmount,
-                MonthlyExpenseAmount = monthlyExpenseAmount,
-                UpcomingTransactions = upcomingTransactions
-            };
+                .ToListAsync();
         }
 
-        private decimal ConvertToMonthlyAmount(decimal amount, string frequency)
-        {
-            return frequency switch
-            {
-                "Daily" => amount * 30,
-                "Weekly" => amount * 4.33m,
-                "Monthly" => amount,
-                "Yearly" => amount / 12,
-                _ => 0
-            };
-        }
+        //public async Task<bool> DeleteTransactionFromRecurringAsync(int transactionId)
+        //{
+        //    var transaction = await _context.Transactions
+        //        .FirstOrDefaultAsync(t => t.Id == transactionId && t.RecurringTransactionId.HasValue);
+
+        //    if (transaction == null)
+        //    {
+        //        return false;
+        //    }
+
+        //    _context.Transactions.Remove(transaction);
+        //    await _context.SaveChangesAsync();
+        //    return true;
+        //}
+
+        //public async Task<RecurringTransactionSummaryDto> GetRecurringTransactionSummaryAsync()
+        //{
+        //    var recurringTransactions = await _context.RecurringTransactions
+        //        .Include(rt => rt.Category)
+        //        .ToListAsync();
+
+        //    var activeTransactions = recurringTransactions.Where(rt => IsRecurringTransactionActive(rt)).ToList();
+        //    var inactiveTransactions = recurringTransactions.Where(rt => !IsRecurringTransactionActive(rt)).ToList();
+
+        //    // Calculate monthly amounts
+        //    var monthlyIncomeAmount = activeTransactions
+        //        .Where(rt => rt.Type == "Income")
+        //        .Sum(rt => ConvertToMonthlyAmount(rt.Amount, rt.Frequency));
+
+        //    var monthlyExpenseAmount = activeTransactions
+        //        .Where(rt => rt.Type == "Expense")
+        //        .Sum(rt => ConvertToMonthlyAmount(rt.Amount, rt.Frequency));
+
+        //    // Get upcoming transactions (next 7 days)
+        //    var upcomingTransactions = activeTransactions
+        //        .Select(rt => new RecurringTransactionListDto
+        //        {
+        //            Id = rt.Id,
+        //            Type = rt.Type,
+        //            CategoryName = rt.Category.Name,
+        //            Amount = rt.Amount,
+        //            Frequency = rt.Frequency,
+        //            StartDate = rt.StartDate,
+        //            EndDate = rt.EndDate,
+        //            NextExecutionDate = CalculateNextExecutionDate(rt),
+        //            IsActive = true,
+        //            GeneratedTransactionsCount = _context.Transactions.Count(t => t.RecurringTransactionId == rt.Id)
+        //        })
+        //        .Where(rt => rt.NextExecutionDate.HasValue && rt.NextExecutionDate.Value <= DateTime.Today.AddDays(7))
+        //        .OrderBy(rt => rt.NextExecutionDate)
+        //        .ToList();
+
+        //    return new RecurringTransactionSummaryDto
+        //    {
+        //        TotalActive = activeTransactions.Count,
+        //        TotalInactive = inactiveTransactions.Count,
+        //        MonthlyIncomeAmount = monthlyIncomeAmount,
+        //        MonthlyExpenseAmount = monthlyExpenseAmount,
+        //        UpcomingTransactions = upcomingTransactions
+        //    };
+        //}
+
+        //private decimal ConvertToMonthlyAmount(decimal amount, string frequency)
+        //{
+        //    return frequency switch
+        //    {
+        //        "Daily" => amount * 30,
+        //        "Weekly" => amount * 4.33m,
+        //        "Monthly" => amount,
+        //        "Yearly" => amount / 12,
+        //        _ => 0
+        //    };
+        //}
 
         private DateTime? CalculateNextExecutionDate(RecurringTransaction recurringTransaction)
         {
@@ -497,6 +606,85 @@ namespace SpendSmart_Backend.Services
 
                 if (transactionCount >= recurringTransaction.Occurrences.Value)
                     return false;
+            }
+
+            return true;
+        }
+
+        // Add this new method to process a single recurring transaction
+        private async Task ProcessRecurringTransactionAsync(int recurringTransactionId)
+        {
+            var recurringTransaction = await _context.RecurringTransactions
+                .Include(rt => rt.Category)
+                .FirstOrDefaultAsync(rt => rt.Id == recurringTransactionId);
+
+            if (recurringTransaction == null || !recurringTransaction.AutoDeduction)
+                return;
+
+            var startDate = recurringTransaction.StartDate!.Value.Date;
+            var lastDate = recurringTransaction.EndDate.HasValue
+                ? recurringTransaction.EndDate.Value.Date
+                : DateTime.Today;
+
+            // Only process up to the earlier of today or end date
+            var processUntil = lastDate < DateTime.Today ? lastDate : DateTime.Today;
+
+            var existingDates = await _context.Transactions
+                .Where(t => t.RecurringTransactionId == recurringTransaction.Id)
+                .Select(t => t.Date.Date)
+                .ToListAsync();
+
+            int createdCount = existingDates.Count;
+            var currentDate = startDate;
+
+            while (currentDate <= processUntil)
+            {
+                if (ShouldExecuteOnDate(recurringTransaction, currentDate) &&
+                    !existingDates.Contains(currentDate))
+                {
+                    if (recurringTransaction.Occurrences.HasValue && createdCount >= recurringTransaction.Occurrences.Value)
+                        break;
+
+                    var transaction = new Transaction
+                    {
+                        Type = recurringTransaction.Type,
+                        CategoryId = recurringTransaction.CategoryId,
+                        Amount = recurringTransaction.Amount,
+                        Date = currentDate,
+                        Description = $"{recurringTransaction.Description} (Recurring Transaction)",
+                        UserId = recurringTransaction.UserId,
+                        RecurringTransactionId = recurringTransaction.Id
+                    };
+
+                    _context.Transactions.Add(transaction);
+                    createdCount++;
+                }
+                currentDate = GetNextExecutionDate(recurringTransaction, currentDate);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> DeleteAllTransactionsFromRecurringAsync(int userId, int recurringTransactionId)
+        {
+            // Verify the recurring transaction exists
+            var recurringTransaction = await _context.RecurringTransactions
+                .FirstOrDefaultAsync(rt => rt.Id == recurringTransactionId && rt.UserId == userId);
+
+            if (recurringTransaction == null)
+            {
+                return false;
+            }
+
+            // Find all transactions associated with this recurring transaction
+            var transactions = await _context.Transactions
+                .Where(t => t.RecurringTransactionId == recurringTransactionId)
+                .ToListAsync();
+
+            if (transactions.Any())
+            {
+                _context.Transactions.RemoveRange(transactions);
+                await _context.SaveChangesAsync();
             }
 
             return true;

@@ -5,6 +5,25 @@ using SpendSmart_Backend.DTOs;
 
 namespace SpendSmart_Backend.Controllers
 {
+    // Centralized User Configuration
+    public static class UserConfiguration
+    {
+        // Change this value to update the default userId throughout the backend
+        public static int DefaultUserId { get; set; } = 1;
+
+        // Helper method to get the current default user ID
+        public static int GetDefaultUserId()
+        {
+            return DefaultUserId;
+        }
+
+        // Method to update the default user ID if needed
+        public static void SetDefaultUserId(int newUserId)
+        {
+            DefaultUserId = newUserId;
+        }
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     public class ReportsController : ControllerBase
@@ -36,7 +55,7 @@ namespace SpendSmart_Backend.Controllers
                     return BadRequest(new { message = "StartDate cannot be after EndDate." });
 
                 // For testing without auth, use default userId if not provided
-                var userId = request.UserId > 0 ? request.UserId : 1;
+                var userId = request.UserId > 0 ? request.UserId : UserConfiguration.GetDefaultUserId();
 
                 // 🔍 Get transactions for the date range
                 var transactions = await _context.Transactions
@@ -129,7 +148,7 @@ namespace SpendSmart_Backend.Controllers
                     MonthlyData = monthlyData,
                     Goals = goalStatuses,
                     Transactions = formattedTransactions.Cast<object>().ToList(),
-                    SavingsGrowthOverTime = savingsGrowthOverTime ,// ADD THIS LINE
+                    SavingsGrowthOverTime = savingsGrowthOverTime,// ADD THIS LINE
                 };
 
                 _logger.LogInformation($"Report generated successfully with {formattedTransactions.Count} transactions and {savingsGrowthOverTime.Count} savings entries");
@@ -238,6 +257,121 @@ namespace SpendSmart_Backend.Controllers
             });
         }
 
+        // GET: api/Reports/stored/{userId}
+        [HttpGet("stored/{userId}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetStoredReports(int userId)
+        {
+            try
+            {
+                _logger.LogInformation($"Retrieving stored reports for user ");
+
+                var reports = await _context.Reports
+                    .Where(r => r.UserId == userId && r.Status == "Active")
+                    .OrderByDescending(r => r.DateGenerated)
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.ReportName,
+                        r.Format,
+                        r.DateGenerated,
+                        r.StartDate,
+                        r.EndDate,
+                        r.FirebaseUrl,
+                        r.Description,
+                        r.FileSizeBytes,
+                        r.FileName,
+                        r.AccessCount,
+                        r.LastAccessed,
+                        r.Status,
+                        DateRange = $"{r.StartDate:yyyy-MM-dd} to {r.EndDate:yyyy-MM-dd}",
+                        FileSizeMB = r.FileSizeBytes.HasValue ? Math.Round((double)r.FileSizeBytes.Value / 1024 / 1024, 2) : (double?)null
+                    })
+                    .ToListAsync();
+
+                _logger.LogInformation($"Found {reports.Count} stored reports for user ");
+                return Ok(reports);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving stored reports for user {userId}");
+                return StatusCode(500, new { message = "Error retrieving stored reports", error = ex.Message });
+            }
+        }
+
+        // POST: api/Reports/store
+        [HttpPost("store")]
+        public async Task<ActionResult<object>> StoreReport([FromBody] StoreReportDto reportDto)
+        {
+            try
+            {
+                _logger.LogInformation($"Storing report for user : {reportDto.ReportName}");
+
+                var report = new Models.Report
+                {
+                    ReportName = reportDto.ReportName,
+                    Format = reportDto.Format,
+                    DateGenerated = DateTime.UtcNow,
+                    StartDate = reportDto.StartDate,
+                    EndDate = reportDto.EndDate,
+                    FirebaseUrl = reportDto.FirebaseUrl,
+                    Description = reportDto.Description,
+                    UserId = reportDto.UserId,
+                    // Enhanced metadata
+                    FileSizeBytes = reportDto.FileSizeBytes,
+                    FileName = reportDto.FileName,
+                    AccessCount = 0,
+                    Status = "Active"
+                };
+
+                _context.Reports.Add(report);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Report stored successfully with ID {report.Id}");
+
+                return Ok(new
+                {
+                    id = report.Id,
+                    message = "Report stored successfully",
+                    reportName = report.ReportName,
+                    dateGenerated = report.DateGenerated,
+                    fileSizeBytes = report.FileSizeBytes,
+                    fileName = report.FileName
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error storing report for user ");
+                return StatusCode(500, new { message = "Error storing report", error = ex.Message });
+            }
+        }
+
+        // DELETE: api/Reports/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteStoredReport(int id)
+        {
+            try
+            {
+                _logger.LogInformation($"Deleting report with ID {id}");
+
+                var report = await _context.Reports.FindAsync(id);
+                if (report == null)
+                {
+                    return NotFound(new { message = "Report not found" });
+                }
+
+                _context.Reports.Remove(report);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Report with ID {id} deleted successfully");
+                return Ok(new { message = "Report deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting report with ID {id}");
+                return StatusCode(500, new { message = "Error deleting report", error = ex.Message });
+            }
+        }
+
         // Add sample data endpoint for testing
         [HttpPost("sample-data")]
         public async Task<IActionResult> CreateSampleData()
@@ -253,7 +387,7 @@ namespace SpendSmart_Backend.Controllers
                 }
 
                 // Check if sample data already exists
-                var existingTransactions = await _context.Transactions.Where(t => t.UserId == 1).CountAsync();
+                var existingTransactions = await _context.Transactions.Where(t => t.UserId == UserConfiguration.GetDefaultUserId()).CountAsync();
                 if (existingTransactions > 0)
                 {
                     return Ok(new { message = $"Sample data already exists ({existingTransactions} transactions)" });

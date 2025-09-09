@@ -4,8 +4,10 @@ using Microsoft.IdentityModel.Tokens;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.Services;
 
+
 using System.Text;
 using System.Text.Json;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +42,7 @@ builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionSer
 builder.Services.AddHostedService<RecurringTransactionBackgroundService>();
 
 
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
@@ -64,7 +67,12 @@ builder.Services.AddScoped<EmailService>();
 
 // 6. JWT Authentication Setup
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+var jwtKey = jwtSettings["Key"];
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new InvalidOperationException("JWT Key is not configured in appsettings.json");
+}
+var key = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(options =>
 {

@@ -28,13 +28,13 @@ namespace SpendSmart_Backend.Controllers
         //    return userId;
         //}
 
-        [HttpPost("CreateRecurringTransaction")]
-        public async Task<ActionResult<RecurringTransactionDto>> CreateRecurringTransaction([FromBody] CreateRecurringTransactionDto dto)
+        [HttpPost("CreateRecurringTransaction/{userId}")]
+        public async Task<ActionResult<RecurringTransactionDto>> CreateRecurringTransaction(int userId, [FromBody] CreateRecurringTransactionDto dto)
         {
             try
             {
-                var result = await _recurringTransactionService.CreateRecurringTransactionAsync(dto);
-                return CreatedAtAction(nameof(GetRecurringTransaction), new { id = result.Id }, result);
+                var result = await _recurringTransactionService.CreateRecurringTransactionAsync(userId, dto);
+                return Ok(result);
             }
             catch (ArgumentException ex)
             {
@@ -46,13 +46,13 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
-        [HttpGet("GetRecurringTransactionById/{id}")]
-        public async Task<ActionResult<RecurringTransactionDto>> GetRecurringTransactionById(int id)
+        [HttpGet("GetRecurringTransactionById/{userId}/{id}")]
+        public async Task<ActionResult<RecurringTransactionDto>> GetRecurringTransactionById(int userId, int id)
         {
             try
             {
                 //var userId = GetCurrentUserId();
-                var result = await _recurringTransactionService.GetRecurringTransactionByIdAsync(id);
+                var result = await _recurringTransactionService.GetRecurringTransactionByIdAsync(userId, id);
                 return Ok(result);
             }
             catch (ArgumentException ex)
@@ -65,13 +65,13 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
-        [HttpGet("GetRecurringTransactions")]
-        public async Task<ActionResult<RecurringTransactionDto>> GetRecurringTransaction()
+        [HttpGet("GetRecurringTransactions/{userId}")]
+        public async Task<ActionResult<RecurringTransactionDto>> GetRecurringTransaction(int userId)
         {
             try
             {
                 //var userId = GetCurrentUserId();
-                var result = await _recurringTransactionService.GetRecurringTransactionAsync();
+                var result = await _recurringTransactionService.GetRecurringTransactionAsync(userId);
                 return Ok(result);
             }
             catch (ArgumentException ex)
@@ -99,13 +99,13 @@ namespace SpendSmart_Backend.Controllers
         //    }
         //}
 
-        [HttpGet("active")]
-        public async Task<ActionResult<List<RecurringTransactionListDto>>> GetActiveRecurringTransactions()
+        [HttpGet("active/{userId}")]
+        public async Task<ActionResult<List<RecurringTransactionListDto>>> GetActiveRecurringTransactions(int userId)
         {
             try
             {
                 //var userId = GetCurrentUserId();
-                var result = await _recurringTransactionService.GetActiveRecurringTransactionsAsync();
+                var result = await _recurringTransactionService.GetActiveRecurringTransactionsAsync(userId);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -133,13 +133,13 @@ namespace SpendSmart_Backend.Controllers
         //    }
         //}
 
-        [HttpDelete("DeleteRecurringTransaction/{id}")]
-        public async Task<ActionResult> DeleteRecurringTransaction(int id)
+        [HttpDelete("DeleteRecurringTransaction/{userId}/{id}")]
+        public async Task<ActionResult> DeleteRecurringTransaction(int userId, int id)
         {
             try
             {
                 //var userId = GetCurrentUserId();
-                var result = await _recurringTransactionService.DeleteRecurringTransactionAsync(id);
+                var result = await _recurringTransactionService.DeleteRecurringTransactionAsync(userId, id);
 
                 if (!result)
                 {
@@ -169,13 +169,13 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
-        [HttpGet("{id}/transactions")]
-        public async Task<ActionResult<List<Transaction>>> GetTransactionsFromRecurringTransaction(int id)
+        [HttpGet("transactions/{userId}/{id}")]
+        public async Task<ActionResult<List<Transaction>>> GetTransactionsFromRecurringTransaction(int userId, int id)
         {
             try
             {
                 //var userId = GetCurrentUserId();
-                var result = await _recurringTransactionService.GetTransactionsFromRecurringTransactionAsync(id);
+                var result = await _recurringTransactionService.GetTransactionsFromRecurringTransactionAsync(userId, id);
                 return Ok(result);
             }
             catch (ArgumentException ex)
@@ -188,39 +188,59 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
-        [HttpDelete("transactions/{transactionId}")]
-        public async Task<ActionResult> DeleteTransactionFromRecurring(int transactionId)
+        //[HttpDelete("transactions/{transactionId}")]
+        //public async Task<ActionResult> DeleteTransactionFromRecurring(int transactionId)
+        //{
+        //    try
+        //    {
+        //        //var userId = GetCurrentUserId();
+        //        var result = await _recurringTransactionService.DeleteTransactionFromRecurringAsync(transactionId);
+
+        //        if (!result)
+        //        {
+        //            return NotFound(new { message = "Transaction not found or not from recurring transaction" });
+        //        }
+
+        //        return NoContent();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new { message = "An error occurred while deleting the transaction" });
+        //    }
+        //}
+
+        //[HttpGet("summary")]
+        //public async Task<ActionResult<RecurringTransactionSummaryDto>> GetRecurringTransactionSummary()
+        //{
+        //    try
+        //    {
+        //        //var userId = GetCurrentUserId();
+        //        var result = await _recurringTransactionService.GetRecurringTransactionSummaryAsync();
+        //        return Ok(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new { message = "An error occurred while retrieving the summary" });
+        //    }
+        //}
+
+        [HttpDelete("transactions/{userId}/{id}")]
+        public async Task<ActionResult> DeleteAllTransactionsFromRecurring(int userId, int id)
         {
             try
             {
-                //var userId = GetCurrentUserId();
-                var result = await _recurringTransactionService.DeleteTransactionFromRecurringAsync(transactionId);
+                var result = await _recurringTransactionService.DeleteAllTransactionsFromRecurringAsync(userId, id);
 
                 if (!result)
                 {
-                    return NotFound(new { message = "Transaction not found or not from recurring transaction" });
+                    return NotFound(new { message = "Recurring transaction not found" });
                 }
 
                 return NoContent();
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while deleting the transaction" });
-            }
-        }
-
-        [HttpGet("summary")]
-        public async Task<ActionResult<RecurringTransactionSummaryDto>> GetRecurringTransactionSummary()
-        {
-            try
-            {
-                //var userId = GetCurrentUserId();
-                var result = await _recurringTransactionService.GetRecurringTransactionSummaryAsync();
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving the summary" });
+                return StatusCode(500, new { message = "An error occurred while deleting transactions" });
             }
         }
     }
