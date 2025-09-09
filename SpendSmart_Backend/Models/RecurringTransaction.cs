@@ -15,7 +15,6 @@ namespace SpendSmart_Backend.Models
 
         public string? Description { get; set; } // <-- Add this line
 
-
         public string Frequency { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }

@@ -34,6 +34,7 @@ namespace SpendSmart_Backend.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalSpentAmount { get; set; } = 0;
 
+
         [NotMapped]
         public decimal RemainingAmount => TotalBudgetAmount - TotalSpentAmount;
 
@@ -66,7 +67,7 @@ namespace SpendSmart_Backend.Models
             return date.Date >= StartDate.Date && date.Date <= EndDate.Date;
         }
 
-        // Foreign key
+
         [ForeignKey("UserId")]
         public virtual User User { get; set; }
 

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpendSmart_Backend.Models
@@ -8,18 +9,35 @@ namespace SpendSmart_Backend.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
-        public string UserName { get; set; }
-        public string Email { get; set; }
-        public string Password { get; set; }
-       
+         public string UserName { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
 
-        public ICollection<UserAdmin> UserAdmins { get; set; }
+        // Profile Picture Properties
+        public string? ProfilePicture { get; set; } // Base64 encoded image
+        public string? ProfilePictureFileName { get; set; } // Original file name
+        public DateTime? ProfilePictureUploadedAt { get; set; } // Upload timestamp
+
+        // Email Verification Properties
+        public string? PendingEmail { get; set; } // Email waiting for verification
+        public EmailVerificationStatus EmailStatus { get; set; } = EmailVerificationStatus.Verified;
 
         public string? ResetToken { get; set; }
         public DateTime? ResetTokenExpiry { get; set; }
 
         public bool IsEmailVerified { get; set; } = false;
         public string? EmailVerificationToken { get; set; }
+
+
+
+        public ICollection<UserAdmin> UserAdmins { get; set; } = new List<UserAdmin>();
+        public ICollection<EmailVerification> EmailVerifications { get; set; } = new List<EmailVerification>();
+
+
+
+
+
+        
 
     }
 }

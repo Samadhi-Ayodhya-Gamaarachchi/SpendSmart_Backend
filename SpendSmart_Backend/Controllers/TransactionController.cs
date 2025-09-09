@@ -72,7 +72,7 @@ namespace SpendSmart_Backend.Controllers
                 var result = await _transactionService.DeleteTransactionAsync(userId, transactionId);
                 if (!result)
                     return NotFound("Transaction not found");
-                return Ok("Transaction deleted successfully");
+                return Ok(result);
             }
             catch(Exception ex)
             {
