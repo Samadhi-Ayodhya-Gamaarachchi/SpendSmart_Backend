@@ -22,7 +22,9 @@ namespace SpendSmart_Backend.Controllers
                 var dashboardSummary = await _dashboardService.GetDashboardSummary(userId);
                 return Ok(dashboardSummary);
             }
-            catch(Exception ex)
+
+            catch (Exception ex)
+
             {
                 return StatusCode(500, $"Error fetching Dashboard {ex.Message}");
             }
@@ -36,7 +38,9 @@ namespace SpendSmart_Backend.Controllers
                 var result = await _dashboardService.GetIncomeVsExpenseSummary(userId, period);
                 return Ok(result);
             }
+
             catch(Exception ex)
+
             {
                 return StatusCode(500, $"Error fetching bargraph data {ex.Message}");
             }
@@ -50,10 +54,13 @@ namespace SpendSmart_Backend.Controllers
                 var result = await _dashboardService.GetPiechartData(userId);
                 return Ok(result);
             }
+
             catch(Exception ex)
+
             {
                 return StatusCode(500, ex.Message);
             }
         }
     }
+
 }

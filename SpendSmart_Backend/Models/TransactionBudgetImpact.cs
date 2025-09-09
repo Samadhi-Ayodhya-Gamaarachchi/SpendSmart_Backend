@@ -6,7 +6,11 @@ namespace SpendSmart_Backend.Models
     public class TransactionBudgetImpact
     {
         [Key]
+
         public int TransactionBudgetImpactId { get; set; }
+
+        public int ImpactId { get; set; }
+
 
         [Required]
         public int TransactionId { get; set; }
@@ -33,4 +37,6 @@ namespace SpendSmart_Backend.Models
         [ForeignKey("CategoryId")]
         public virtual Category Category { get; set; }
     }
+
 }
+

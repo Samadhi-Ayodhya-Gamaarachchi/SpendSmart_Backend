@@ -1,4 +1,7 @@
+
 ﻿using System.ComponentModel.DataAnnotations;
+
+
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpendSmart_Backend.Models
@@ -20,6 +23,11 @@ namespace SpendSmart_Backend.Models
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal SpentAmount { get; set; } = 0;
+
+
+        [NotMapped]
+        public decimal RemainingAmount => AllocatedAmount - SpentAmount;
+
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
