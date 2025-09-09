@@ -24,6 +24,7 @@ namespace SpendSmart_Backend.Models
         public bool IsActive { get; set; } = true;
         public string Status { get; set; } = "Active";
 
+
         public ICollection<Transaction> Transactions { get; set; }
         public ICollection<Report> Reports { get; set; }
         public ICollection<Goal> Goals { get; set; }
