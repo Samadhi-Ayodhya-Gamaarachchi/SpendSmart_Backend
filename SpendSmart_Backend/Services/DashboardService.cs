@@ -4,7 +4,9 @@ using SpendSmart_Backend.DTOs;
 
 namespace SpendSmart_Backend.Services
 {
+
     public class DashboardService: IDashboardService
+
     {
         private readonly ApplicationDbContext _context;
 
@@ -53,7 +55,9 @@ namespace SpendSmart_Backend.Services
                 .Include(t => t.Category)
                 .AsQueryable();
 
+
             if(Period == "Monthly")
+
             {
                 return await transactions
                     .GroupBy(t => new { t.Date.Year, t.Date.Month })
@@ -83,7 +87,9 @@ namespace SpendSmart_Backend.Services
             var result = await _context.Transactions
                 .Where(t => t.UserId == userId && t.Type == "Expense")
                 .Include(t => t.Category)
+
                 .GroupBy(t => new {t.CategoryId, t.Category.Name})
+
                 .Select(g => new DashboardPiechartDto
                 {
                     Label = g.Key.Name,
@@ -94,4 +100,6 @@ namespace SpendSmart_Backend.Services
             return result;
         }
     }
+
 }
+
