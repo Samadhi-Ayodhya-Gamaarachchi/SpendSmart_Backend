@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpendSmart_Backend.Data;
 
@@ -11,9 +12,11 @@ using SpendSmart_Backend.Data;
 namespace SpendSmart_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250720081205_New Databse")]
+    partial class NewDatabse
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -34,23 +37,11 @@ namespace SpendSmart_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("EmailVerificationToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsEmailVerified")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Password")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ResetToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ResetTokenExpiry")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserName")
+                    b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -61,114 +52,38 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Budget", b =>
                 {
-                    b.Property<int>("BudgetId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BudgetId"));
-
-                    b.Property<string>("BudgetName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("BudgetType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("TotalBudgetAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalSpentAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("BudgetId");
-
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("StartDate", "EndDate")
-                        .HasDatabaseName("IX_Budget_DateRange");
-
-                    b.HasIndex("UserId", "Status")
-                        .HasDatabaseName("IX_Budget_UserId_Status");
-
-                    b.ToTable("Budgets", t =>
-                        {
-                            t.HasCheckConstraint("CK_Budget_BudgetType", "[BudgetType] IN ('Monthly', 'Annually')");
-
-                            t.HasCheckConstraint("CK_Budget_Status", "[Status] IN ('Active', 'Completed', 'Cancelled')");
-                        });
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.BudgetCategory", b =>
-                {
-                    b.Property<int>("BudgetCategoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BudgetCategoryId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("AllocatedAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("BudgetId")
-                        .HasColumnType("int");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("MonthYear")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("SpentAmount")
-                        .HasPrecision(18, 2)
+                    b.Property<decimal>("SpendAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
-                    b.HasKey("BudgetCategoryId");
-
-                    b.HasIndex("BudgetId")
-                        .HasDatabaseName("IX_BudgetCategory_BudgetId");
+                    b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("BudgetId", "CategoryId")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
-                    b.ToTable("BudgetCategories");
+                    b.ToTable("Budgets");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Category", b =>
@@ -179,12 +94,7 @@ namespace SpendSmart_Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CategoryName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Type")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -194,10 +104,7 @@ namespace SpendSmart_Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", t =>
-                        {
-                            t.HasCheckConstraint("CK_Category_Type", "[Type] IN ('Income', 'Expense')");
-                        });
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Goal", b =>
@@ -209,10 +116,10 @@ namespace SpendSmart_Backend.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("CurrentAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("EndDate")
@@ -220,14 +127,12 @@ namespace SpendSmart_Backend.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("TargetAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("UserId")
@@ -242,7 +147,6 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
                 {
-
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -279,13 +183,10 @@ namespace SpendSmart_Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-
                     b.HasKey("Id");
-
 
                     b.HasIndex("CategoryId");
 
@@ -327,7 +228,7 @@ namespace SpendSmart_Backend.Migrations
                     b.ToTable("Reports");
                 });
 
-            modelBuilder.Entity("SpendSmart_Backend.Models.SavingRecord", b =>
+            modelBuilder.Entity("SpendSmart_Backend.Models.Transaction", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -336,8 +237,10 @@ namespace SpendSmart_Backend.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
@@ -345,115 +248,25 @@ namespace SpendSmart_Backend.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("GoalId")
+                    b.Property<int?>("RecurringTransactionId")
                         .HasColumnType("int");
 
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("time");
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GoalId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("SavingRecords");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.Transaction", b =>
-                {
-                    b.Property<int>("TransactionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionId"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-
-                    b.Property<int?>("RecurringTransactionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Type")
-
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TransactionId");
-
-                    b.HasIndex("CategoryId", "TransactionType")
-                        .HasDatabaseName("IX_Transaction_Category_Type");
-
-                    b.HasIndex("UserId", "TransactionDate")
-                        .HasDatabaseName("IX_Transaction_UserId_Date");
-
-                    b.ToTable("Transactions", t =>
-                        {
-                            t.HasCheckConstraint("CK_Transaction_RecurringFrequency", "[RecurringFrequency] IN ('Daily', 'Weekly', 'Monthly', 'Annually') OR [RecurringFrequency] IS NULL");
-
-                            t.HasCheckConstraint("CK_Transaction_TransactionType", "[TransactionType] IN ('Income', 'Expense')");
-                        });
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.TransactionBudgetImpact", b =>
-                {
-                    b.Property<int>("ImpactId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImpactId"));
-
-                    b.Property<int>("BudgetId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("ImpactAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TransactionId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ImpactId");
-
-                    b.HasIndex("BudgetId")
-                        .HasDatabaseName("IX_TransactionBudgetImpact_BudgetId");
-
                     b.HasIndex("CategoryId");
-
 
                     b.HasIndex("RecurringTransactionId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TransactionBudgetImpacts");
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.User", b =>
@@ -470,35 +283,23 @@ namespace SpendSmart_Backend.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("EmailVerificationToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsEmailVerified")
-                        .HasColumnType("bit");
+                    b.Property<string>("FirstName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ResetToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ResetTokenExpiry")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("UserName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.HasIndex("UserName")
-                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -525,9 +326,11 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Budget", b =>
                 {
-                    b.HasOne("SpendSmart_Backend.Models.Category", null)
+                    b.HasOne("SpendSmart_Backend.Models.Category", "Category")
                         .WithMany("Budgets")
-                        .HasForeignKey("CategoryId");
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
                         .WithMany("Budgets")
@@ -535,26 +338,9 @@ namespace SpendSmart_Backend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.BudgetCategory", b =>
-                {
-                    b.HasOne("SpendSmart_Backend.Models.Budget", "Budget")
-                        .WithMany("BudgetCategories")
-                        .HasForeignKey("BudgetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.Category", "Category")
-                        .WithMany("BudgetCategories")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Budget");
-
                     b.Navigation("Category");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.Goal", b =>
@@ -562,27 +348,8 @@ namespace SpendSmart_Backend.Migrations
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
                         .WithMany("Goals")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
-                {
-                    b.HasOne("SpendSmart_Backend.Models.Category", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Category");
 
                     b.Navigation("User");
                 });
@@ -611,27 +378,8 @@ namespace SpendSmart_Backend.Migrations
                     b.HasOne("SpendSmart_Backend.Models.User", "User")
                         .WithMany("Reports")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.SavingRecord", b =>
-                {
-                    b.HasOne("SpendSmart_Backend.Models.Goal", "Goal")
-                        .WithMany("SavingRecords")
-                        .HasForeignKey("GoalId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.User", "User")
-                        .WithMany("SavingRecords")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Goal");
 
                     b.Navigation("User");
                 });
@@ -662,33 +410,6 @@ namespace SpendSmart_Backend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SpendSmart_Backend.Models.TransactionBudgetImpact", b =>
-                {
-                    b.HasOne("SpendSmart_Backend.Models.Budget", "Budget")
-                        .WithMany("TransactionBudgetImpacts")
-                        .HasForeignKey("BudgetId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.Category", "Category")
-                        .WithMany("TransactionBudgetImpacts")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SpendSmart_Backend.Models.Transaction", "Transaction")
-                        .WithMany("TransactionBudgetImpacts")
-                        .HasForeignKey("TransactionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Budget");
-
-                    b.Navigation("Category");
-
-                    b.Navigation("Transaction");
-                });
-
             modelBuilder.Entity("SpendSmart_Backend.Models.UserAdmin", b =>
                 {
                     b.HasOne("SpendSmart_Backend.Models.Admin", null)
@@ -717,17 +438,8 @@ namespace SpendSmart_Backend.Migrations
                     b.Navigation("UserAdmins");
                 });
 
-            modelBuilder.Entity("SpendSmart_Backend.Models.Budget", b =>
-                {
-                    b.Navigation("BudgetCategories");
-
-                    b.Navigation("TransactionBudgetImpacts");
-                });
-
             modelBuilder.Entity("SpendSmart_Backend.Models.Category", b =>
                 {
-                    b.Navigation("BudgetCategories");
-
                     b.Navigation("Budgets");
 
                     b.Navigation("RecurringTransactions");
@@ -737,18 +449,7 @@ namespace SpendSmart_Backend.Migrations
 
             modelBuilder.Entity("SpendSmart_Backend.Models.RecurringTransaction", b =>
                 {
-
                     b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.Goal", b =>
-                {
-                    b.Navigation("SavingRecords");
-                });
-
-            modelBuilder.Entity("SpendSmart_Backend.Models.Transaction", b =>
-                {
-                    b.Navigation("TransactionBudgetImpacts");
                 });
 
             modelBuilder.Entity("SpendSmart_Backend.Models.User", b =>
@@ -762,8 +463,6 @@ namespace SpendSmart_Backend.Migrations
                     b.Navigation("RecurringTransactions");
 
                     b.Navigation("Reports");
-
-                    b.Navigation("SavingRecords");
 
                     b.Navigation("Transactions");
 

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpendSmart_Backend.Models
@@ -27,17 +25,9 @@ namespace SpendSmart_Backend.Models
         [MaxLength(500)]
         public string? Description { get; set; }
 
-        [MaxLength(100)]
-        public string? MerchantName { get; set; }
+        public int UserId { get; set; }
+        public int? RecurringTransactionId { get; set; }
 
-        [MaxLength(200)]
-        public string? Location { get; set; }
-
-        [MaxLength(500)]
-        public string? Tags { get; set; } // Comma-separated list of tags
-
-        [MaxLength(1000)]
-        public string? ReceiptUrl { get; set; }
 
         [Required]
         [Column(TypeName = "date")]
@@ -61,7 +51,10 @@ namespace SpendSmart_Backend.Models
         [ForeignKey("CategoryId")]
         public virtual Category Category { get; set; }
 
-        // Navigation properties
-        public virtual ICollection<TransactionBudgetImpact> TransactionBudgetImpacts { get; set; } = new List<TransactionBudgetImpact>();
+
+        [ForeignKey("RecurringTransactionId")]
+        public RecurringTransaction? RecurringTransaction { get; set; }
+
+
     }
 }
