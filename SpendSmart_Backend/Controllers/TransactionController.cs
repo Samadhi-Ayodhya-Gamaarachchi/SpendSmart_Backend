@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SpendSmart_Backend.Data;
-
+using Microsoft.AspNetCore.Authorization;
 using SpendSmart_Backend.DTOs;
 using SpendSmart_Backend.Models;
 
@@ -9,11 +9,8 @@ using SpendSmart_Backend.Services;
 
 namespace SpendSmart_Backend.Controllers
 {   
-    [ApiController]
     [Route("api/[controller]")]
-
-
-    public class TransactionController : Controller
+    public class TransactionController : BaseController
     {
         private readonly ITransactionService _transactionService;
 
@@ -22,8 +19,8 @@ namespace SpendSmart_Backend.Controllers
             _transactionService = transactionService;
         }
 
-        [HttpPost("CreateTransaction/{userId}")]
-        public async Task<IActionResult> CreateTransaction(int userId, [FromBody] TransactionDto transactionDto)
+        [HttpPost("CreateTransaction")]
+        public async Task<IActionResult> CreateTransaction([FromBody] TransactionDto transactionDto)
         {
             try
             {
@@ -31,9 +28,16 @@ namespace SpendSmart_Backend.Controllers
                 {
                     return BadRequest("Transaction data is null");
                 }
+                
+                // Get user ID from JWT token - no user can create transactions for others
+                var userId = GetCurrentUserId();
                 var transaction = await _transactionService.CreateTransactionAsync(userId, transactionDto);
                 return Ok(transaction);
 
+            }
+            catch(UnauthorizedAccessException)
+            {
+                return Unauthorized("Invalid token or user access");
             }
             catch(Exception ex)
             {
@@ -41,9 +45,8 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
-        [HttpGet("GetTransaction/{userId}")]
+        [HttpGet("GetTransaction")]
         public async Task<IActionResult> GetTransaction(
-            int userId,
             [FromQuery] string? type, 
             [FromQuery] string? category, 
             [FromQuery] DateTime? date,
@@ -55,8 +58,14 @@ namespace SpendSmart_Backend.Controllers
         {
             try
             {
+                // Get user ID from JWT token - users can only see their own transactions
+                var userId = GetCurrentUserId();
                 var transactions = await _transactionService.GetTransactionAsync(userId, type, category, date, startDate, endDate, sorting);
                 return Ok(transactions);
+            }
+            catch(UnauthorizedAccessException)
+            {
+                return Unauthorized("Invalid token or user access");
             }
             catch(Exception ex)
             {
@@ -64,15 +73,21 @@ namespace SpendSmart_Backend.Controllers
             }
         }
 
-        [HttpDelete("DeleteTransaction/{userId}/{transactionId}")]
-        public async Task<IActionResult> DeleteTransaction(int userId, int transactionId)
+        [HttpDelete("DeleteTransaction/{transactionId}")]
+        public async Task<IActionResult> DeleteTransaction(int transactionId)
         {
             try
             {
+                // Get user ID from JWT token - users can only delete their own transactions
+                var userId = GetCurrentUserId();
                 var result = await _transactionService.DeleteTransactionAsync(userId, transactionId);
                 if (!result)
-                    return NotFound("Transaction not found");
+                    return NotFound("Transaction not found or you don't have permission to delete it");
                 return Ok("Transaction deleted successfully");
+            }
+            catch(UnauthorizedAccessException)
+            {
+                return Unauthorized("Invalid token or user access");
             }
             catch(Exception ex)
             {

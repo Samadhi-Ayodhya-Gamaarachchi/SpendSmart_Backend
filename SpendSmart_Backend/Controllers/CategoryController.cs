@@ -1,16 +1,15 @@
 
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using SpendSmart_Backend.Data;
 using SpendSmart_Backend.DTOs;
 
 
 namespace SpendSmart_Backend.Controllers
 {
-    [ApiController]
     [Route("api/[controller]")]
-
-    public class CategoryController : Controller
+    public class CategoryController : BaseController
     {
         private readonly ApplicationDbContext _context;
 

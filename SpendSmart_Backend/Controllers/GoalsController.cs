@@ -8,9 +8,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace SpendSmart_Backend.Controllers
 {
-    [ApiController]
     [Route("api/[controller]")]
-    public class GoalsController : ControllerBase
+    public class GoalsController : BaseController
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<GoalsController> _logger;
@@ -21,55 +20,51 @@ namespace SpendSmart_Backend.Controllers
             _logger = logger;
         }
 
-        // GET: api/Goals
+        // GET: api/Goals - Get current user's goals only
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<GoalDto>>> GetGoals()
         {
-            _logger.LogInformation("Getting all goals");
-
-            var goals = await _context.Goals.ToListAsync();
-
-            var goalDtos = goals.Select(goal => new GoalDto
+            try
             {
-                Id = goal.Id,
-                Name = goal.Name,
-                TargetAmount = goal.TargetAmount,
-                CurrentAmount = goal.CurrentAmount,
-                StartDate = goal.StartDate,
-                EndDate = goal.EndDate,
-                Description = goal.Description ?? "",
-                UserId = goal.UserId,
-                Progress = goal.TargetAmount > 0 ? Math.Round((goal.CurrentAmount / goal.TargetAmount) * 100, 2) : 0,
-                RemainingDays = (int)(goal.EndDate - DateTime.Now).TotalDays
-            }).ToList();
+                // Get user ID from JWT token - users can only see their own goals
+                var userId = GetCurrentUserId();
+                _logger.LogInformation("Getting goals for user {UserId}", userId);
 
-            _logger.LogInformation("Returning {Count} goals", goalDtos.Count);
-            return Ok(goalDtos);
+                var goals = await _context.Goals
+                    .Where(g => g.UserId == userId)
+                    .ToListAsync();
+
+                var goalDtos = goals.Select(goal => new GoalDto
+                {
+                    Id = goal.Id,
+                    Name = goal.Name,
+                    TargetAmount = goal.TargetAmount,
+                    CurrentAmount = goal.CurrentAmount,
+                    StartDate = goal.StartDate,
+                    EndDate = goal.EndDate,
+                    Description = goal.Description ?? "",
+                    UserId = goal.UserId,
+                    Progress = goal.TargetAmount > 0 ? Math.Round((goal.CurrentAmount / goal.TargetAmount) * 100, 2) : 0,
+                    RemainingDays = (int)(goal.EndDate - DateTime.Now).TotalDays
+                }).ToList();
+
+                _logger.LogInformation("Returning {Count} goals for user {UserId}", goalDtos.Count, userId);
+                return Ok(goalDtos);
+            }
+            catch(UnauthorizedAccessException)
+            {
+                return Unauthorized("Invalid token or user access");
+            }
         }
 
-        [HttpGet("user/{userId}")]
-        public async Task<ActionResult<IEnumerable<GoalDto>>> GetGoal(int userId)
+        // This endpoint is now redundant since GetGoals() already filters by current user
+        // Keeping it for backward compatibility but it will return the same data as GetGoals()
+        [HttpGet("user")]
+        public async Task<ActionResult<IEnumerable<GoalDto>>> GetGoalsByUser()
         {
-            var goals = await _context.Goals
-                .Where(g => g.UserId == userId)
-                .Select(g => new GoalDto
-                {
-                    Id = g.Id,
-                    Name = g.Name,
-                    TargetAmount = g.TargetAmount,
-                    CurrentAmount = g.CurrentAmount,
-                    StartDate = g.StartDate,
-                    EndDate = g.EndDate,
-                    Description = g.Description,
-                    UserId = g.UserId,
-
-                    Progress = g.TargetAmount > 0 ? Math.Round((g.CurrentAmount / g.TargetAmount) * 100, 2) : 0,
-                    RemainingDays = (int)(g.EndDate - DateTime.Now).TotalDays
-                })
-                .ToListAsync();
-
-            return Ok(goals);
+            // Redirect to the main GetGoals method which now handles user filtering
+            return await GetGoals();
         }
 
 
@@ -80,20 +75,23 @@ namespace SpendSmart_Backend.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<GoalDto>> CreateGoal(CreateGoalDto createGoalDto)
         {
-            _logger.LogInformation("Creating new goal: {@Goal}", createGoalDto);
-
             try
             {
+                // Get user ID from JWT token - users can only create goals for themselves
+                var userId = GetCurrentUserId();
+                _logger.LogInformation("Creating new goal for user {UserId}: {@Goal}", userId, createGoalDto);
+
                 if (!ModelState.IsValid)
                 {
                     _logger.LogWarning("Invalid model state: {@Errors}", ModelState);
                     return BadRequest(ModelState);
                 }
 
-                var user = await _context.Users.FindAsync(createGoalDto.UserId);
+                // Override the UserId from DTO with the authenticated user's ID
+                var user = await _context.Users.FindAsync(userId);
                 if (user == null)
                 {
-                    return BadRequest($"User with ID {createGoalDto.UserId} not found");
+                    return BadRequest($"User with ID {userId} not found");
                 }
 
                 var goal = new Goal
@@ -104,14 +102,14 @@ namespace SpendSmart_Backend.Controllers
                     StartDate = createGoalDto.StartDate,
                     EndDate = createGoalDto.EndDate,
                     Description = createGoalDto.Description ?? string.Empty,
-                    UserId = createGoalDto.UserId,
+                    UserId = userId, // Use authenticated user's ID, not from DTO
                     User = user
                 };
 
                 _context.Goals.Add(goal);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Goal created successfully with ID: {GoalId}", goal.Id);
+                _logger.LogInformation("Goal created successfully with ID: {GoalId} for user {UserId}", goal.Id, userId);
 
                 var goalDto = new GoalDto
                 {
@@ -127,7 +125,11 @@ namespace SpendSmart_Backend.Controllers
                     RemainingDays = (int)(goal.EndDate - DateTime.Now).TotalDays
                 };
 
-                return CreatedAtAction(nameof(GetGoal), new { id = goal.Id }, goalDto);
+                return CreatedAtAction(nameof(GetGoals), goalDto);
+            }
+            catch(UnauthorizedAccessException)
+            {
+                return Unauthorized("Invalid token or user access");
             }
             catch (Exception ex)
             {
@@ -143,15 +145,18 @@ namespace SpendSmart_Backend.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<GoalDto>> UpdateGoal(int id, [FromBody] UpdateGoalDto updateGoalDto)
         {
-            _logger.LogInformation("Updating goal with ID: {GoalId}, Data: {@Goal}", id, updateGoalDto);
-
             try
             {
-                var goal = await _context.Goals.FindAsync(id);
+                // Get user ID from JWT token - users can only update their own goals
+                var userId = GetCurrentUserId();
+                _logger.LogInformation("Updating goal with ID: {GoalId} for user {UserId}, Data: {@Goal}", id, userId, updateGoalDto);
+
+                // Find goal and verify ownership
+                var goal = await _context.Goals.FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
                 if (goal == null)
                 {
-                    _logger.LogWarning("Goal with ID {GoalId} not found", id);
-                    return NotFound();
+                    _logger.LogWarning("Goal with ID {GoalId} not found for user {UserId}", id, userId);
+                    return NotFound("Goal not found or you don't have permission to update it");
                 }
 
                 // Update properties if they are provided
@@ -176,7 +181,7 @@ namespace SpendSmart_Backend.Controllers
                 _context.Entry(goal).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Goal updated successfully");
+                _logger.LogInformation("Goal updated successfully for user {UserId}", userId);
 
                 // Return the updated goal
                 var goalDto = new GoalDto
@@ -195,6 +200,10 @@ namespace SpendSmart_Backend.Controllers
 
                 return Ok(goalDto);
             }
+            catch(UnauthorizedAccessException)
+            {
+                return Unauthorized("Invalid token or user access");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating goal with ID: {GoalId}", id);
@@ -209,17 +218,25 @@ namespace SpendSmart_Backend.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteGoal(int id)
         {
-            var goal = await _context.Goals.FindAsync(id);
-            if (goal == null)
-            {
-                return NotFound();
-            }
-
             try
             {
+                // Get user ID from JWT token - users can only delete their own goals
+                var userId = GetCurrentUserId();
+                
+                // Find goal and verify ownership
+                var goal = await _context.Goals.FirstOrDefaultAsync(g => g.Id == id && g.UserId == userId);
+                if (goal == null)
+                {
+                    return NotFound("Goal not found or you don't have permission to delete it");
+                }
+
                 _context.Goals.Remove(goal);
                 await _context.SaveChangesAsync();
                 return NoContent();
+            }
+            catch(UnauthorizedAccessException)
+            {
+                return Unauthorized("Invalid token or user access");
             }
             catch (Exception ex)
             {
